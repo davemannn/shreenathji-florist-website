@@ -1,10 +1,14 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import prettierConfig from "eslint-config-prettier";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // Must come last — disables any ESLint formatting rules that would
+  // otherwise conflict with Prettier, which owns formatting exclusively.
+  prettierConfig,
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -12,6 +16,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Purchased WordPress theme kept as a visual reference only — never
+    // linted, never imported as code.
+    "florial/**",
+    // Generated Prisma client output.
+    "src/generated/**",
   ]),
 ]);
 

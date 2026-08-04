@@ -1,0 +1,13 @@
+node_modules
+.next
+build
+dist
+prisma/migrations
+public
+package-lock.json
+
+# Purchased WordPress theme — visual reference only, never reformatted.
+florial
+
+# Generated Prisma client output.
+src/generated

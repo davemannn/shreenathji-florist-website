@@ -1,0 +1,142 @@
+/*------------------- content layout -----------------*/
+.list-style {
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: auto;
+  }
+  a {
+    border-bottom: 1px solid $gray-dark;
+    &:hover {
+      border-color: $theme-color;
+    }
+  }
+}
+.button-arrow {
+  .button-slider {
+    &:after {
+      display: none !important;
+    }
+  }
+}
+.scroll-down {
+  position: absolute !important;
+  @include transform(translateY(-100%));
+  width: 100%;
+}
+.wpb-accordion {
+  .elementor-accordion-item {
+    &:last-child {
+      border: 0 !important;
+    }
+    border-bottom: 1px solid #e2e2e2 !important;
+    margin: 0 0 15px;
+    .elementor-accordion-icon {
+      width: 11px !important;
+    }
+    .elementor-tab-content {
+      display: none !important;
+      &.elementor-active {
+        display: block !important;
+      }
+    }
+    @media (max-width: $screen-xs) {
+      padding: 10px 10px 16px;
+      &:before {
+        display: none;
+      }
+      .elementor-accordion-icon {
+        width: 10px !important;
+      }
+    }
+  }
+}
+
+/*------------------- end content layout -----------------*/
+
+/*------------------- Title Block -----------------*/
+
+/*------------------- end Title Block -----------------*/
+
+/*------------------- Content Button -----------------*/
+.content-button {
+  a {
+    .elementor-button-icon {
+      font-size: 15px;
+      position: relative;
+      top: 2px;
+    }
+  }
+}
+/*------------------- End Content Button -----------------*/
+
+/*------------------- newlester layout -----------------*/
+
+/*------------------- end newlester layout -----------------*/
+
+/*------------------- Other layout -----------------*/
+.marginright-auto {
+  > .elementor-container {
+    margin-left: 0 !important;
+  }
+}
+.marginleft-auto {
+  > .elementor-container {
+    margin-right: 0 !important;
+  }
+}
+@media (min-width: $screen-sm-max) {
+  .marginright-sm-auto {
+    > .elementor-container {
+      margin-left: 0 !important;
+    }
+  }
+  .marginleft-sm-auto {
+    > .elementor-container {
+      margin-right: 0 !important;
+    }
+  }
+}
+@media (max-width: $screen-sm-max) {
+  .marginright-xs-auto {
+    > .elementor-container {
+      margin-left: 0 !important;
+    }
+  }
+  .marginleft-xs-auto {
+    > .elementor-container {
+      margin-right: 0 !important;
+    }
+  }
+}
+.elementor-icon-box-title {
+  margin-top: 0;
+}
+.icon-scroll {
+  -webkit-animation: icon-scroll 1s infinite alternate;
+  animation: icon-scroll 1s infinite alternate;
+  h2 {
+    @include size(19px, 29px);
+    border: 2px solid $white;
+    @include border-radius(25px);
+    display: inline-block;
+    position: relative;
+    &:before {
+      position: absolute;
+      content: "";
+      @include size(3px, 6px);
+      background: $white;
+      @include border-radius(25px);
+      top: 6px;
+      left: 50%;
+      @include transform(translateX(-50%));
+    }
+  }
+}
+/*------------------- End layout -----------------*/
+.elementor-section:not(.elementor-section-full_width, .elementor-inner-section) {
+  @media (max-width: 1770px) and (min-width: $screen-md-max) {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+}

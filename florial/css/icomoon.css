@@ -1,0 +1,71 @@
+@font-face {
+  font-family: icomoon;
+  src: url(../fonts/icomoon.eot?fzv6fp);
+  src:
+    url(../fonts/icomoon.eot?fzv6fp#iefix) format("embedded-opentype"),
+    url(../fonts/icomoon.ttf?fzv6fp) format("truetype"),
+    url(../fonts/icomoon.woff?fzv6fp) format("woff"),
+    url(../fonts/icomoon.svg?fzv6fp#icomoon) format("svg");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+[class*=" icon-"],
+[class^="icon-"] {
+  font-family: icomoon;
+  speak: none;
+  font-style: normal;
+  font-weight: 400;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-flower:before {
+  content: "\e907";
+}
+.icon-flowers-1:before {
+  content: "\e908";
+}
+.icon-flowers:before {
+  content: "\e909";
+}
+.icon-rose:before {
+  content: "\e90a";
+}
+.icon-sakura:before {
+  content: "\e90b";
+}
+.icon-wild-rose:before {
+  content: "\e90c";
+}
+.icon-left-arrow:before {
+  content: "\e906";
+}
+.icon-quote:before {
+  content: "\e905";
+}
+.icon-pointed-star:before {
+  content: "\e904";
+}
+.icon-download:before {
+  content: "\e903";
+}
+.icon-pin:before {
+  content: "\e900";
+}
+.icon-right-arrow:before {
+  content: "\e901";
+}
+.icon-telephone:before {
+  content: "\e902";
+}
+.icon-x-twitter:before {
+  content: "\e90d";
+}
+.icon-tiktok:before {
+  content: "\e90e";
+}

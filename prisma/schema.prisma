@@ -1,0 +1,21 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// Placeholder model — proves the Prisma -> MySQL/MariaDB -> generated client
+// pipeline works end to end. Full domain modeling (Product, Category, Order,
+// Customer, Coupon, Review, DeliverySlot, DeliveryCharge, GalleryImage,
+// BlogPost, SEO metadata, Settings, etc.) is its own dedicated,
+// separately-approved milestone — do not add real domain models here yet.
+model HealthCheck {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+}
