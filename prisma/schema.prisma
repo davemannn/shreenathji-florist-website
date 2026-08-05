@@ -15,8 +15,7 @@ datasource db {
 // Field shapes match Better Auth's own documented schema exactly (verified
 // against node_modules/@better-auth/core/dist/db/schema/*.d.mts), plus the
 // role/banned/banReason/banExpires/impersonatedBy fields added by its admin
-// plugin. Full commerce domain modeling (Product, Order, Customer, etc.) is
-// its own separately-approved milestone — do not add those models here yet.
+// plugin.
 // ---------------------------------------------------------------------------
 
 model User {
@@ -33,6 +32,8 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  addresses     Address[]
+  orders        Order[]
 }
 
 model Session {
@@ -78,4 +79,225 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@index([identifier])
+}
+
+// ---------------------------------------------------------------------------
+// Commerce models — shop catalog, cart-to-order flow, checkout. Money is
+// stored as Int whole rupees throughout (matches the fixture data this
+// replaces); converted to paise only at the Razorpay API boundary.
+// ---------------------------------------------------------------------------
+
+enum ProductBadge {
+  SALE
+  NEW
+  BESTSELLER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  COD
+  RAZORPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum DiscountType {
+  PERCENT
+  FLAT
+}
+
+enum DeliverySlotType {
+  NORMAL
+  FIXED
+  MIDNIGHT
+}
+
+model Category {
+  id          String            @id @default(cuid())
+  name        String
+  slug        String            @unique
+  description String?
+  imageUrl    String?
+  isOccasion  Boolean           @default(false)
+  isFeatured  Boolean           @default(false)
+  sortOrder   Int               @default(0)
+  products    ProductCategory[]
+}
+
+model Product {
+  id           String            @id @default(cuid())
+  slug         String            @unique
+  title        String
+  description  String            @db.Text
+  badge        ProductBadge?
+  isActive     Boolean           @default(true)
+  isBestSeller Boolean           @default(false)
+  isFeatured   Boolean           @default(false)
+  rating       Float             @default(0)
+  reviewCount  Int               @default(0)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  categories   ProductCategory[]
+  images       ProductImage[]
+  variants     ProductVariant[]
+  reviews      Review[]
+  orderItems   OrderItem[]
+}
+
+model ProductCategory {
+  productId  String
+  categoryId String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  url       String
+  alt       String
+  sortOrder Int     @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ProductVariant {
+  id             String      @id @default(cuid())
+  productId      String
+  label          String
+  price          Int
+  compareAtPrice Int?
+  stock          Int         @default(0)
+  isDefault      Boolean     @default(false)
+  sortOrder      Int         @default(0)
+  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems     OrderItem[]
+
+  @@index([productId])
+}
+
+model Address {
+  id             String   @id @default(cuid())
+  userId         String
+  label          String?
+  recipientName  String
+  recipientPhone String
+  line1          String
+  line2          String?
+  city           String
+  state          String
+  pincode        String
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model DeliverySlot {
+  id          String           @id @default(cuid())
+  label       String
+  type        DeliverySlotType @default(NORMAL)
+  extraCharge Int              @default(0)
+  isActive    Boolean          @default(true)
+  sortOrder   Int              @default(0)
+  orders      Order[]
+}
+
+model Coupon {
+  id            String       @id @default(cuid())
+  code          String       @unique
+  description   String?
+  discountType  DiscountType
+  discountValue Int
+  minOrderValue Int?
+  maxDiscount   Int?
+  expiresAt     DateTime?
+  isActive      Boolean      @default(true)
+  usageLimit    Int?
+  usedCount     Int          @default(0)
+  orders        Order[]
+}
+
+model Order {
+  id                String        @id @default(cuid())
+  orderNumber       String        @unique
+  userId            String
+  status            OrderStatus   @default(PENDING)
+  subtotal          Int
+  discount          Int           @default(0)
+  deliveryCharge    Int           @default(0)
+  total             Int
+  paymentMethod     PaymentMethod
+  paymentStatus     PaymentStatus @default(PENDING)
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  recipientName     String
+  recipientPhone    String
+  deliveryLine1     String
+  deliveryLine2     String?
+  deliveryCity      String
+  deliveryState     String
+  deliveryPincode   String
+  deliveryDate      DateTime
+  deliverySlotId    String?
+  messageCard       String?
+  giftWrap          Boolean       @default(false)
+  couponId          String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  user              User          @relation(fields: [userId], references: [id])
+  deliverySlot      DeliverySlot? @relation(fields: [deliverySlotId], references: [id])
+  coupon            Coupon?       @relation(fields: [couponId], references: [id])
+  items             OrderItem[]
+
+  @@index([userId])
+}
+
+model OrderItem {
+  id           String          @id @default(cuid())
+  orderId      String
+  productId    String?
+  variantId    String?
+  productTitle String
+  variantLabel String?
+  imageUrl     String?
+  unitPrice    Int
+  quantity     Int
+  lineTotal    Int
+  order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant      ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  productId  String
+  userId     String?
+  authorName String
+  rating     Int
+  comment    String   @db.Text
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }

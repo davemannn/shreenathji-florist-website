@@ -1,52 +1,44 @@
-import { pexelsPhoto } from "@/lib/stock-photo";
+import {
+  findCategoryBySlug,
+  listCategories as listCategoriesRepo,
+  listFeaturedCategories,
+} from "@/server/repositories/category.repository";
 import type { Category } from "./types";
 
-const FEATURED_CATEGORIES: Category[] = [
-  {
-    id: "1",
-    name: "Bouquets",
-    slug: "bouquets",
-    imageAlt: "Bouquets",
-    imageUrl: pexelsPhoto("36171894", 400),
-  },
-  {
-    id: "2",
-    name: "Birthday",
-    slug: "birthday",
-    imageAlt: "Birthday flowers",
-    imageUrl: pexelsPhoto("19301032", 400),
-  },
-  {
-    id: "3",
-    name: "Anniversary",
-    slug: "anniversary",
-    imageAlt: "Anniversary flowers",
-    imageUrl: pexelsPhoto("35568784", 400),
-  },
-  {
-    id: "4",
-    name: "Plants",
-    slug: "plants",
-    imageAlt: "Indoor plants",
-    imageUrl: pexelsPhoto("9507280", 400),
-  },
-  {
-    id: "5",
-    name: "Cakes",
-    slug: "cakes",
-    imageAlt: "Cakes",
-    imageUrl: pexelsPhoto("27848148", 400),
-  },
-  {
-    id: "6",
-    name: "Sympathy",
-    slug: "sympathy",
-    imageAlt: "Sympathy flowers",
-    imageUrl: pexelsPhoto("7317682", 400),
-  },
-];
+type CategoryRow = Awaited<ReturnType<typeof listFeaturedCategories>>[number];
+
+function toCategory(category: CategoryRow): Category {
+  return {
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    imageAlt: category.name,
+    imageUrl: category.imageUrl ?? undefined,
+  };
+}
 
 export async function getFeaturedCategories(): Promise<Category[]> {
-  // TODO(prisma-milestone): return prisma.category.findMany({ where: { featured: true } });
-  return FEATURED_CATEGORIES;
+  const categories = await listFeaturedCategories();
+  return categories.map(toCategory);
+}
+
+export async function listAllCategories(): Promise<Category[]> {
+  const categories = await listCategoriesRepo();
+  return categories.map(toCategory);
+}
+
+export interface CategoryWithMeta extends Category {
+  description?: string;
+  isOccasion: boolean;
+}
+
+export async function getCategoryBySlug(slug: string): Promise<CategoryWithMeta | null> {
+  const category = await findCategoryBySlug(slug);
+  if (!category) return null;
+
+  return {
+    ...toCategory(category),
+    description: category.description ?? undefined,
+    isOccasion: category.isOccasion,
+  };
 }
