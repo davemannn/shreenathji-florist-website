@@ -51,6 +51,15 @@ export async function createOrder(input: CreateOrderInput) {
   });
 }
 
+/** All orders for a user, newest first — powers the account dashboard's order history. */
+export async function listOrdersForUser(userId: string) {
+  return prisma.order.findMany({
+    where: { userId },
+    include: { items: true },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export async function findOrderByNumber(orderNumber: string, userId: string) {
   return prisma.order.findFirst({
     where: { orderNumber, userId },
