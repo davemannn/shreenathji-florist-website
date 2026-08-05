@@ -304,3 +304,27 @@ model Review {
 
   @@index([productId])
 }
+
+// ---------------------------------------------------------------------------
+// Blog — care tips, occasion guides, etc. Publicly readable; no admin UI to
+// author posts yet, so content is seeded (prisma/seed.ts) rather than
+// user-submitted.
+// ---------------------------------------------------------------------------
+
+model BlogPost {
+  id              String    @id @default(cuid())
+  slug            String    @unique
+  title           String
+  excerpt         String    @db.Text
+  content         String    @db.Text
+  coverImageUrl   String?
+  coverImageAlt   String?
+  authorName      String
+  readTimeMinutes Int       @default(4)
+  isPublished     Boolean   @default(true)
+  publishedAt     DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([isPublished, publishedAt])
+}

@@ -441,6 +441,133 @@ const COUPONS = [
   },
 ];
 
+const BLOG_POSTS = [
+  {
+    slug: "how-to-make-your-bouquet-last-longer",
+    title: "How to Make Your Bouquet Last Longer",
+    excerpt:
+      "A few simple habits — the right vase, water changes, and where you place it — can double the life of a fresh bouquet.",
+    content: `Fresh flowers are a small daily joy, and a little care goes a long way toward keeping them around longer.
+
+**Trim the stems at an angle.** Every couple of days, snip about an inch off each stem at a 45-degree angle with clean scissors. This exposes fresh tissue so the flowers can keep drinking water.
+
+**Change the water regularly.** Bacteria build up fast in vase water, which is the #1 cause of flowers wilting early. Change it every two days, and rinse the vase itself, not just the water.
+
+**Keep them cool and out of direct sun.** Heat speeds up wilting. Keep your bouquet away from direct sunlight, heating vents, and ripening fruit (fruit releases ethylene gas, which ages flowers faster).
+
+**Remove leaves below the waterline.** Any foliage sitting in water will rot and cloud it quickly — strip it off before arranging.
+
+**Use flower food.** The little sachet that comes with our bouquets isn't just packaging — it balances sugar (food for the flowers) and an anti-bacterial agent that keeps the water clean.
+
+Follow these and most bouquets from us will comfortably last 6-8 days, sometimes longer for hardier varieties like chrysanthemums and carnations.`,
+    coverImage: pexels("5409690", 1200),
+    authorName: "Team Shreenathji",
+    readTimeMinutes: 4,
+  },
+  {
+    slug: "best-flowers-for-anniversaries",
+    title: "Occasion Guide: Best Flowers for Anniversaries",
+    excerpt:
+      "Roses aren't the only option. Here's how to pick an anniversary bouquet that actually fits the years you've shared.",
+    content: `Red roses are the classic anniversary flower for a reason — but they're not your only option, and picking something more personal can make the gesture land even better.
+
+**1st-5th anniversaries:** Bright, romantic mixes work beautifully — think red and pink roses with a touch of baby's breath. Playful and full of energy, much like early years together.
+
+**10th-20th anniversaries:** Consider richer, more layered arrangements — deep red roses paired with lilies or orchids feel a little more grown-up and intentional.
+
+**25th+ anniversaries:** Elegant, monochrome arrangements (all-white lilies, or a single striking color of roses) tend to suit milestone years — understated, but unmistakably special.
+
+Whatever the year, pairing the bouquet with a handwritten card and their favorite cake turns a lovely gift into a memorable one. Our Anniversary collection has options across every budget, and we can add a personalized message card at checkout.`,
+    coverImage: pexels("27176823", 1200),
+    authorName: "Team Shreenathji",
+    readTimeMinutes: 5,
+  },
+  {
+    slug: "how-midnight-delivery-works",
+    title: "Midnight Delivery: How It Works",
+    excerpt:
+      "Want to be the first to wish someone at midnight? Here's exactly how our midnight delivery slot works, and the cutoff you need to know.",
+    content: `Midnight delivery is one of our most-loved services — nothing beats being the very first wish someone receives on their birthday or anniversary.
+
+**How it works:** Choose the Midnight Delivery slot at checkout (11:30 PM - 12:30 AM) for any date. Our rider arrives at the recipient's doorstep right as the clock strikes twelve.
+
+**The cutoff:** For delivery *tonight*, midnight bookings must be placed before 8 PM IST the same day — this gives our team enough time to prepare and route the order. Booking for a future date has no such cutoff; you can schedule it anytime in advance.
+
+**Cutting it close?** If you're ordering after 8 PM for same-day delivery, our Instant/Express option (2-4 hours) is still available — and if it's already close to midnight, it's automatically priced the same as Midnight delivery, since that's realistically when it'll arrive anyway.
+
+**Our tip:** For birthdays especially, book at least a day ahead if you can — it guarantees your exact bouquet choice and gives us room to make it extra special.`,
+    coverImage: pexels("13306125", 1200),
+    authorName: "Team Shreenathji",
+    readTimeMinutes: 3,
+  },
+  {
+    slug: "cake-flavors-for-birthdays",
+    title: "5 Cake Flavors Perfect for Birthdays",
+    excerpt:
+      "From classic Black Forest to rich Red Velvet — a quick guide to picking a birthday cake flavor everyone will love.",
+    content: `Picking a birthday cake flavor can feel harder than it should — here are five crowd-pleasers we bake most often, and who they're best for.
+
+**1. Black Forest** — Chocolate sponge, whipped cream, and cherries. The safest crowd-pleaser there is; almost nobody says no to it.
+
+**2. Red Velvet** — Mildly cocoa-flavored sponge with cream cheese frosting. A little more "special occasion" than chocolate, great for milestone birthdays.
+
+**3. Chocolate Truffle** — Dense, fudgy, and rich — built for serious chocolate lovers.
+
+**4. Pineapple** — Light, fresh, and less sweet than most — a great option for kids' parties or anyone who finds chocolate cakes too heavy.
+
+**5. Butterscotch** — Nutty and caramel-forward, a South Asian favorite that's slightly different from the usual chocolate/vanilla choices.
+
+Can't decide? Pair a smaller cake with a bouquet — that way there's something for everyone at the table, and it looks even better in photos.`,
+    coverImage: pexels("18613262", 1200),
+    authorName: "Team Shreenathji",
+    readTimeMinutes: 4,
+  },
+  {
+    slug: "wedding-decor-trends-2026",
+    title: "Wedding Decor Trends for 2026",
+    excerpt:
+      "From all-white mandaps to hanging floral installations — the wedding decor styles we're setting up most this season.",
+    content: `Every wedding season brings a fresh set of decor requests — here's what we're seeing (and setting up) most often this year.
+
+**All-white mandaps.** A monochrome mandap — white orchids, roses, and jasmine — photographs beautifully and pairs well with any lehenga or sherwani color.
+
+**Hanging floral installations.** Suspended flower clusters above the stage or entrance add real drama without crowding the floor space — popular for both daytime and evening functions.
+
+**Marigold, but elevated.** Traditional marigold garlands remain a haldi/mehendi staple, but we're mixing them with roses and greenery for a more textured, less "flat" look.
+
+**Personalized entrance decor.** Couples' initials or a small floral arch at the entrance are an easy, high-impact way to make a venue feel like *your* wedding, not just any wedding.
+
+**Candlelit accents.** Whether it's a sangeet stage or the dinner tables, warm candlelight paired with flowers continues to be the easiest way to elevate a space after dark.
+
+Planning a wedding? Reach out to our Decoration Services team early — the best dates book up fast, and a longer lead time means more room to get every detail exactly right.`,
+    coverImage: pexels("5060099", 1200),
+    authorName: "Team Shreenathji",
+    readTimeMinutes: 5,
+  },
+  {
+    slug: "caring-for-your-potted-plants",
+    title: "Caring for Your Potted Plants",
+    excerpt:
+      "Gifted or bought a potted plant? Here's how to keep it thriving indoors, especially low-maintenance favorites like Peace Lily and Money Plant.",
+    content: `Potted plants make wonderful, long-lasting gifts — but they do need a bit more attention than a bouquet to keep thriving. Here's a simple care guide.
+
+**Light.** Most indoor plants we sell (Peace Lily, Money Plant, Areca Palm) prefer bright, indirect light — near a window but not in direct sun, which can scorch the leaves.
+
+**Watering.** Overwatering is the most common mistake. Let the top inch of soil dry out between waterings — stick a finger in to check before watering again.
+
+**Humidity.** Indoor plants often struggle with dry, air-conditioned rooms. A light misting once or twice a week helps, especially for Peace Lilies.
+
+**Feeding.** A diluted liquid fertilizer once a month during growing season (spring/summer) is plenty — more isn't better here.
+
+**Repotting.** If roots start peeking out of the drainage hole, it's time to move up one pot size, ideally at the start of the growing season.
+
+Peace Lilies will even tell you when they're thirsty — the leaves droop noticeably, then perk back up within hours of watering. It's one of the easiest plants to keep alive, which is exactly why it's one of our best-sellers.`,
+    coverImage: pexels("9412363", 1200),
+    authorName: "Team Shreenathji",
+    readTimeMinutes: 4,
+  },
+];
+
 async function main() {
   console.log("Seeding categories...");
   for (const [index, category] of CATEGORIES.entries()) {
@@ -545,7 +672,19 @@ async function main() {
     });
   }
 
-  console.log(`Done — ${CATEGORIES.length} categories, ${PRODUCTS.length} products.`);
+  console.log("Seeding blog posts...");
+  for (const post of BLOG_POSTS) {
+    const { coverImage, ...rest } = post;
+    await prisma.blogPost.upsert({
+      where: { slug: post.slug },
+      update: { ...rest, coverImageUrl: coverImage, coverImageAlt: post.title },
+      create: { ...rest, coverImageUrl: coverImage, coverImageAlt: post.title },
+    });
+  }
+
+  console.log(
+    `Done — ${CATEGORIES.length} categories, ${PRODUCTS.length} products, ${BLOG_POSTS.length} blog posts.`,
+  );
 }
 
 main()
