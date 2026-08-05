@@ -6,6 +6,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useCartStore } from "@/stores/cart-store";
+import { tomorrowIsoIst } from "@/lib/delivery";
 import { checkoutSchema, type CheckoutValues } from "../validations";
 import { placeOrderAction, verifyRazorpayPaymentAction } from "../actions";
 import { openRazorpayCheckout } from "../lib/razorpay-checkout";
@@ -42,6 +43,10 @@ export function CheckoutForm({ addresses, deliverySlots }: CheckoutFormProps) {
   }, [hydrated, submitting, items.length, router]);
 
   const defaultAddress = addresses.find((address) => address.isDefault) ?? addresses[0];
+  // Standard delivery isn't bookable for today (see lib/delivery.ts), so the
+  // sensible default pairing is tomorrow + Standard rather than today +
+  // whatever slot happens to sort first.
+  const defaultSlot = deliverySlots.find((slot) => slot.type === "NORMAL") ?? deliverySlots[0];
 
   const methods = useForm<CheckoutValues>({
     resolver: zodResolver(checkoutSchema),
@@ -53,8 +58,8 @@ export function CheckoutForm({ addresses, deliverySlots }: CheckoutFormProps) {
       city: defaultAddress?.city ?? "",
       state: defaultAddress?.state ?? "",
       pincode: defaultAddress?.pincode ?? "",
-      deliveryDate: new Date().toISOString().slice(0, 10),
-      deliverySlotId: deliverySlots[0]?.id,
+      deliveryDate: tomorrowIsoIst(),
+      deliverySlotId: defaultSlot?.id,
       messageCard: "",
       giftWrap: false,
       paymentMethod: "COD",

@@ -4,6 +4,7 @@ import { useFormContext } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
 import { BASE_DELIVERY_CHARGE, FREE_DELIVERY_THRESHOLD } from "@/lib/constants";
+import { effectiveSlotCharge, todayIsoIst } from "@/lib/delivery";
 import { useCartStore, type CartLineItem, type AppliedCoupon } from "@/stores/cart-store";
 import type { CheckoutValues } from "../validations";
 import type { DeliverySlotOption } from "../types";
@@ -18,8 +19,9 @@ export function OrderSummary({ deliverySlots, submitting }: OrderSummaryProps) {
   const appliedCoupon = useCartStore((state) => state.appliedCoupon);
   const { watch } = useFormContext<CheckoutValues>();
   const selectedSlotId = watch("deliverySlotId");
+  const deliveryDate = watch("deliveryDate");
 
-  const totals = computeTotals(items, appliedCoupon, deliverySlots, selectedSlotId);
+  const totals = computeTotals(items, appliedCoupon, deliverySlots, selectedSlotId, deliveryDate);
 
   return (
     <div className="border-border sticky top-24 flex h-fit flex-col gap-4 rounded-xs border p-5">
@@ -69,11 +71,21 @@ function computeTotals(
   appliedCoupon: AppliedCoupon | null,
   deliverySlots: DeliverySlotOption[],
   selectedSlotId: string | undefined,
+  deliveryDate: string,
 ) {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const discount = appliedCoupon?.discount ?? 0;
   const afterDiscount = subtotal - discount;
-  const slotCharge = deliverySlots.find((slot) => slot.id === selectedSlotId)?.extraCharge ?? 0;
+  const selectedSlot = deliverySlots.find((slot) => slot.id === selectedSlotId);
+  // Express/Instant is always "today" regardless of the date field (it's
+  // hidden once selected) — everything else prices off the picked date.
+  const slotCharge = selectedSlot
+    ? effectiveSlotCharge(
+        selectedSlot.type,
+        selectedSlot.type === "FIXED" ? todayIsoIst() : deliveryDate,
+        selectedSlot.extraCharge,
+      )
+    : 0;
   const deliveryCharge =
     (afterDiscount >= FREE_DELIVERY_THRESHOLD ? 0 : BASE_DELIVERY_CHARGE) + slotCharge;
   const total = afterDiscount + deliveryCharge;

@@ -1,3 +1,5 @@
+import type { DeliverySlotType } from "@/lib/delivery";
+
 export interface SavedAddress {
   id: string;
   label?: string;
@@ -15,4 +17,5 @@ export interface DeliverySlotOption {
   id: string;
   label: string;
   extraCharge: number;
+  type: DeliverySlotType;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { nowInIst, toIsoDate } from "@/lib/delivery";
 
 interface DeliveryDatePickerProps {
   value: string;
@@ -9,18 +10,18 @@ interface DeliveryDatePickerProps {
 
 function nextSevenDays(): { iso: string; weekday: string; day: string; label: string }[] {
   return Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() + i);
+    const date = nowInIst();
+    date.setUTCDate(date.getUTCDate() + i);
     return {
-      iso: date.toISOString().slice(0, 10),
-      weekday: date.toLocaleDateString("en-IN", { weekday: "short" }),
-      day: date.toLocaleDateString("en-IN", { day: "numeric" }),
+      iso: toIsoDate(date),
+      weekday: date.toLocaleDateString("en-IN", { weekday: "short", timeZone: "UTC" }),
+      day: date.toLocaleDateString("en-IN", { day: "numeric", timeZone: "UTC" }),
       label:
         i === 0
           ? "Today"
           : i === 1
             ? "Tomorrow"
-            : date.toLocaleDateString("en-IN", { month: "short" }),
+            : date.toLocaleDateString("en-IN", { month: "short", timeZone: "UTC" }),
     };
   });
 }

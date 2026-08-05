@@ -8,6 +8,7 @@ import {
 } from "@/server/repositories/coupon.repository";
 import { findDeliverySlotById } from "@/server/repositories/delivery-slot.repository";
 import { BASE_DELIVERY_CHARGE, FREE_DELIVERY_THRESHOLD } from "@/lib/constants";
+import { effectiveSlotCharge, isSlotAvailable, toIsoDate } from "@/lib/delivery";
 
 export interface CartLineItemInput {
   productId: string;
@@ -53,7 +54,7 @@ export interface OrderTotals {
  */
 export async function calculateOrderTotals(
   subtotal: number,
-  options: { couponCode?: string; deliverySlotId?: string } = {},
+  options: { couponCode?: string; deliverySlotId?: string; deliveryDate?: Date } = {},
 ): Promise<OrderTotals> {
   let discount = 0;
   let couponId: string | undefined;
@@ -84,7 +85,18 @@ export async function calculateOrderTotals(
 
   if (options.deliverySlotId) {
     const slot = await findDeliverySlotById(options.deliverySlotId);
-    if (slot) deliveryCharge += slot.extraCharge;
+    if (slot) {
+      // Express/Instant always means "today" regardless of what date was
+      // submitted (the client resets it, but never trust that alone).
+      const dateIso =
+        slot.type === "FIXED" ? toIsoDate() : toIsoDate(options.deliveryDate ?? new Date());
+
+      if (!isSlotAvailable(slot.type, dateIso)) {
+        throw new Error("The selected delivery slot is no longer available for this date.");
+      }
+
+      deliveryCharge += effectiveSlotCharge(slot.type, dateIso, slot.extraCharge);
+    }
   }
 
   const total = subtotal - discount + deliveryCharge;
@@ -102,6 +114,7 @@ export async function placeOrder(input: PlaceOrderInput) {
   const totals = await calculateOrderTotals(subtotal, {
     couponCode: input.couponCode,
     deliverySlotId: input.deliverySlotId,
+    deliveryDate: input.deliveryDate,
   });
 
   if (totals.couponError) {

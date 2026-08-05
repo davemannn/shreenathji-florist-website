@@ -38,6 +38,7 @@ export default async function CheckoutPage() {
     id: slot.id,
     label: slot.label,
     extraCharge: slot.extraCharge,
+    type: slot.type,
   }));
 
   return (
