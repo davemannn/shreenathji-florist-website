@@ -1,12 +1,20 @@
 import { ProductCard } from "./product-card";
 import type { Product } from "../types";
 
-export function ProductGrid({ products }: { products: Product[] }) {
+interface ProductGridProps {
+  products: Product[];
+  emptyMessage?: string;
+}
+
+export function ProductGrid({
+  products,
+  emptyMessage = "Try a different category.",
+}: ProductGridProps) {
   if (products.length === 0) {
     return (
       <div className="border-border flex flex-col items-center gap-2 rounded-xs border border-dashed py-24 text-center">
         <p className="font-medium">No products found</p>
-        <p className="text-muted-foreground text-sm">Try a different category.</p>
+        <p className="text-muted-foreground text-sm">{emptyMessage}</p>
       </div>
     );
   }

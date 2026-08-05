@@ -3,7 +3,9 @@ import {
   findProductBySlug,
   findRelatedProducts,
   listProducts as listProductsRepo,
+  searchProducts as searchProductsRepo,
   type ListProductsParams,
+  type SearchProductsParams,
 } from "@/server/repositories/product.repository";
 import type { Product, ProductDetail } from "./types";
 
@@ -92,6 +94,15 @@ export async function listShopProducts(
 export async function getProductBySlug(slug: string): Promise<ProductDetail | null> {
   const product = await findProductBySlug(slug);
   return product ? toProductDetail(product) : null;
+}
+
+export type ProductSearchParams = SearchProductsParams;
+
+export async function searchShopProducts(
+  params: ProductSearchParams,
+): Promise<ShopProductListResult> {
+  const { products, total, page, pageSize } = await searchProductsRepo(params);
+  return { products: products.map(toProductCard), total, page, pageSize };
 }
 
 export async function getRelatedProducts(

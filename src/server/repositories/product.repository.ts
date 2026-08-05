@@ -71,6 +71,38 @@ export async function findBestSellers(limit = 8) {
   });
 }
 
+export interface SearchProductsParams {
+  query: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/** Plain `contains` match on title/description — MySQL's default collation
+ * already makes this case-insensitive, no Postgres-only `mode: "insensitive"`
+ * option needed. Fine for this catalog's size; a dedicated search index
+ * would only be worth it at a much bigger scale. */
+export async function searchProducts(params: SearchProductsParams) {
+  const { query, page = 1, pageSize = 12 } = params;
+
+  const where = {
+    isActive: true,
+    OR: [{ title: { contains: query } }, { description: { contains: query } }],
+  };
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: PRODUCT_INCLUDE,
+      orderBy: { rating: "desc" as const },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  return { products, total, page, pageSize };
+}
+
 export async function findRelatedProducts(productId: string, categorySlugs: string[], limit = 4) {
   if (categorySlugs.length === 0) return [];
 
