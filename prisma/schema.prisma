@@ -37,6 +37,7 @@ model User {
   accounts      Account[]
   addresses     Address[]
   orders        Order[]
+  giftCards     GiftCard[]
 }
 
 model Session {
@@ -327,4 +328,39 @@ model BlogPost {
   updatedAt       DateTime  @updatedAt
 
   @@index([isPublished, publishedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Gift cards — paid for online (Razorpay only, no COD: there's nothing to
+// hand over on delivery for a digital code). `balance` starts equal to
+// `amount` and isn't decremented anywhere yet — no redemption-at-checkout
+// flow in this pass, same "real field, no fake flow" approach as
+// User.walletBalance.
+// ---------------------------------------------------------------------------
+
+enum GiftCardRecipientType {
+  SELF
+  OTHER
+}
+
+model GiftCard {
+  id                String                @id @default(cuid())
+  code              String                @unique
+  amount            Int
+  balance           Int
+  purchaserId       String
+  recipientType     GiftCardRecipientType @default(SELF)
+  recipientName     String?
+  recipientEmail    String?
+  recipientPhone    String?
+  message           String?               @db.Text
+  deliveryDate      DateTime?
+  paymentStatus     PaymentStatus         @default(PENDING)
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  purchaser         User                  @relation(fields: [purchaserId], references: [id])
+
+  @@index([purchaserId])
 }

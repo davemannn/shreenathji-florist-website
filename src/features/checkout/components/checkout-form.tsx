@@ -9,7 +9,7 @@ import { useCartStore } from "@/stores/cart-store";
 import { tomorrowIsoIst } from "@/lib/delivery";
 import { checkoutSchema, type CheckoutValues } from "../validations";
 import { placeOrderAction, verifyRazorpayPaymentAction } from "../actions";
-import { openRazorpayCheckout } from "../lib/razorpay-checkout";
+import { openRazorpayCheckout } from "@/lib/razorpay-checkout";
 import { AddressSection } from "./address-section";
 import { DeliverySection } from "./delivery-section";
 import { PaymentSection } from "./payment-section";

@@ -1,3 +1,7 @@
+// Client-side Razorpay Checkout.js loader/opener — shared by any feature
+// that takes an online payment (checkout, gift cards). Lazy-loads the
+// script only when a payment is actually attempted, not on every page load.
+
 interface RazorpayPaymentResponse {
   razorpay_payment_id: string;
   razorpay_order_id: string;
@@ -44,13 +48,14 @@ interface OpenRazorpayCheckoutParams {
   keyId: string;
   amount: number;
   razorpayOrderId: string;
+  description?: string;
   recipientName: string;
   recipientPhone: string;
   onSuccess: (response: RazorpayPaymentResponse) => void;
   onDismiss: () => void;
 }
 
-/** Lazy-loads checkout.js (only when a Razorpay payment is actually attempted, not on every checkout page load) and opens the widget. */
+/** Lazy-loads checkout.js (only when a Razorpay payment is actually attempted, not on every page load) and opens the widget. */
 export async function openRazorpayCheckout(params: OpenRazorpayCheckoutParams) {
   await loadRazorpayScript();
 
@@ -60,7 +65,7 @@ export async function openRazorpayCheckout(params: OpenRazorpayCheckoutParams) {
     currency: "INR",
     order_id: params.razorpayOrderId,
     name: "Shreenathji Florist",
-    description: "Order payment",
+    description: params.description ?? "Order payment",
     prefill: { name: params.recipientName, contact: params.recipientPhone },
     theme: { color: "#c9105f" },
     handler: params.onSuccess,
