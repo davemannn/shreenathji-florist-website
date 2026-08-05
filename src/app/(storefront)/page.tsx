@@ -11,6 +11,15 @@ import { FaqAccordion } from "@/features/faq/components/faq-accordion";
 import { InstagramGrid } from "@/features/gallery/components/instagram-grid";
 import { ScrollReveal } from "@/components/shared/scroll-reveal";
 
+// TopCategories/BestSellersSection read the live catalog from the DB. Without
+// this, Next has no per-request signal on this route and would happily
+// prerender it once at build time — baking in whatever categories/products
+// existed then. That's wrong for a catalog managed through an admin panel
+// (edits wouldn't show up without a full rebuild+redeploy), and it's also
+// why the Hostinger build failed outright: the build container couldn't
+// reach the production DB to do that one-time prerender at all.
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   return (
     <>
