@@ -1,3 +1,4 @@
-// Domain types for the "cart" feature.
-// Populated when the cart feature is built out.
-export {};
+export interface AppliedCoupon {
+  code: string;
+  discount: number;
+}

@@ -7,12 +7,7 @@ import {
   incrementCouponUsage,
 } from "@/server/repositories/coupon.repository";
 import { findDeliverySlotById } from "@/server/repositories/delivery-slot.repository";
-
-// No DeliveryZone/pincode-based pricing table for this pass (see the
-// commerce-milestone plan) — flat charge + free-delivery threshold, plus
-// each DeliverySlot's own extraCharge (e.g. midnight delivery costs more).
-export const BASE_DELIVERY_CHARGE = 49;
-export const FREE_DELIVERY_THRESHOLD = 999;
+import { BASE_DELIVERY_CHARGE, FREE_DELIVERY_THRESHOLD } from "@/lib/constants";
 
 export interface CartLineItemInput {
   productId: string;
@@ -51,12 +46,15 @@ export interface OrderTotals {
   couponError?: string;
 }
 
+/**
+ * Takes `subtotal` directly (rather than `items`) so the cart page can reuse
+ * this for coupon validation before checkout even exists — no synthetic
+ * cart items needed.
+ */
 export async function calculateOrderTotals(
-  items: CartLineItemInput[],
+  subtotal: number,
   options: { couponCode?: string; deliverySlotId?: string } = {},
 ): Promise<OrderTotals> {
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
   let discount = 0;
   let couponId: string | undefined;
   let couponError: string | undefined;
@@ -100,7 +98,8 @@ function generateOrderNumber(): string {
 
 /** Validates the coupon/totals, creates the Order + OrderItems, and bumps coupon usage. Throws on a coupon error so the caller can surface it. */
 export async function placeOrder(input: PlaceOrderInput) {
-  const totals = await calculateOrderTotals(input.items, {
+  const subtotal = input.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totals = await calculateOrderTotals(subtotal, {
     couponCode: input.couponCode,
     deliverySlotId: input.deliverySlotId,
   });
