@@ -45,7 +45,17 @@ export function QuickViewTrigger({ product }: { product: Product }) {
           />
           <div className="flex flex-col gap-3">
             <p className="text-xl font-semibold">{formatINR(product.price)}</p>
-            <AddToCartButton productTitle={product.title} />
+            <AddToCartButton
+              item={{
+                productId: product.id,
+                productSlug: product.slug,
+                variantId: product.defaultVariantId,
+                productTitle: product.title,
+                variantLabel: product.defaultVariantLabel,
+                imageUrl: product.imageUrl,
+                price: product.price,
+              }}
+            />
             <Link
               href={`/shop/product/${product.slug}`}
               className="text-muted-foreground text-sm underline underline-offset-4"

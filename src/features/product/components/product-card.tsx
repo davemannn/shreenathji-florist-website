@@ -60,7 +60,17 @@ export function ProductCard({ product }: { product: Product }) {
         </div>
       </div>
 
-      <AddToCartButton productTitle={product.title} />
+      <AddToCartButton
+        item={{
+          productId: product.id,
+          productSlug: product.slug,
+          variantId: product.defaultVariantId,
+          productTitle: product.title,
+          variantLabel: product.defaultVariantLabel,
+          imageUrl: product.imageUrl,
+          price: product.price,
+        }}
+      />
     </div>
   );
 }

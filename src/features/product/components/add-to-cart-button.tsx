@@ -3,23 +3,25 @@
 import { ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useCartStore } from "@/stores/cart-store";
+import { useCartStore, type CartLineItem } from "@/stores/cart-store";
 
 interface AddToCartButtonProps {
-  productTitle: string;
+  item: Omit<CartLineItem, "quantity">;
+  quantity?: number;
+  className?: string;
 }
 
-export function AddToCartButton({ productTitle }: AddToCartButtonProps) {
-  const addToCart = useCartStore((state) => state.add);
+export function AddToCartButton({ item, quantity = 1, className }: AddToCartButtonProps) {
+  const addItem = useCartStore((state) => state.addItem);
 
   return (
     <Button
       variant="brand"
       size="sm"
-      className="w-full"
+      className={className ?? "w-full"}
       onClick={() => {
-        addToCart();
-        toast.success(`${productTitle} added to cart`);
+        addItem(item, quantity);
+        toast.success(`${item.productTitle} added to cart`);
       }}
     >
       <ShoppingBag aria-hidden="true" />

@@ -27,6 +27,8 @@ function toProductCard(product: ProductListRow): Product {
     title: product.title,
     price: variant?.price ?? 0,
     compareAtPrice: variant?.compareAtPrice ?? undefined,
+    defaultVariantId: variant?.id ?? "",
+    defaultVariantLabel: variant?.label ?? "",
     rating: product.rating,
     reviewCount: product.reviewCount,
     badge: product.badge?.toLowerCase() as Product["badge"],

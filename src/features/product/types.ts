@@ -5,6 +5,9 @@ export interface Product {
   /** INR, whole rupees — the default variant's price. */
   price: number;
   compareAtPrice?: number;
+  /** The default variant — what "Add to Cart" from a card (not the PDP) adds. */
+  defaultVariantId: string;
+  defaultVariantLabel: string;
   rating: number;
   reviewCount: number;
   badge?: "sale" | "new" | "bestseller";
