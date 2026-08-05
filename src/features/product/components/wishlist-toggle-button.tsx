@@ -3,15 +3,16 @@
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useWishlistStore } from "@/stores/wishlist-store";
+import { useWishlistStore, type WishlistItem } from "@/stores/wishlist-store";
 
 interface WishlistToggleButtonProps {
-  productId: string;
-  productTitle: string;
+  item: WishlistItem;
 }
 
-export function WishlistToggleButton({ productId, productTitle }: WishlistToggleButtonProps) {
-  const isWishlisted = useWishlistStore((state) => state.productIds.has(productId));
+export function WishlistToggleButton({ item }: WishlistToggleButtonProps) {
+  const isWishlisted = useWishlistStore((state) =>
+    state.items.some((i) => i.productId === item.productId),
+  );
   const toggle = useWishlistStore((state) => state.toggle);
 
   return (
@@ -21,9 +22,9 @@ export function WishlistToggleButton({ productId, productTitle }: WishlistToggle
       className="rounded-full"
       aria-pressed={isWishlisted}
       aria-label={
-        isWishlisted ? `Remove ${productTitle} from wishlist` : `Add ${productTitle} to wishlist`
+        isWishlisted ? `Remove ${item.title} from wishlist` : `Add ${item.title} to wishlist`
       }
-      onClick={() => toggle(productId)}
+      onClick={() => toggle(item)}
     >
       <Heart className={cn("size-4", isWishlisted && "fill-brand text-brand")} aria-hidden="true" />
     </Button>

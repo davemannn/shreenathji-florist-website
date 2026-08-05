@@ -40,7 +40,21 @@ export function ProductCard({ product }: { product: Product }) {
           </Badge>
         ) : null}
         <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-          <WishlistToggleButton productId={product.id} productTitle={product.title} />
+          <WishlistToggleButton
+            item={{
+              productId: product.id,
+              slug: product.slug,
+              title: product.title,
+              price: product.price,
+              compareAtPrice: product.compareAtPrice,
+              defaultVariantId: product.defaultVariantId,
+              defaultVariantLabel: product.defaultVariantLabel,
+              imageUrl: product.imageUrl,
+              imageAlt: product.imageAlt,
+              rating: product.rating,
+              reviewCount: product.reviewCount,
+            }}
+          />
           <QuickViewTrigger product={product} />
         </div>
       </div>

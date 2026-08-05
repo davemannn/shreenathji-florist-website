@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Heart, Search, ShoppingBag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartItemCount } from "@/stores/cart-store";
-import { useWishlistStore } from "@/stores/wishlist-store";
+import { useWishlistCount } from "@/stores/wishlist-store";
 import { useSession } from "@/lib/auth-client";
 
 function CountBadge({ count }: { count: number }) {
@@ -17,15 +17,14 @@ function CountBadge({ count }: { count: number }) {
 }
 
 /**
- * Search/account/wishlist/cart icon cluster. Cart is a real persisted
- * zustand store (see src/stores/cart-store.ts); wishlist is in-memory only
- * for now (no persistence — resets on refresh, no SSR-hydration concern).
- * Search has no backend yet; it links to a future /search route rather than
- * pretending to work.
+ * Search/account/wishlist/cart icon cluster. Cart and wishlist are both
+ * real persisted zustand stores (localStorage) — see src/stores/cart-store.ts
+ * and src/stores/wishlist-store.ts. Search has no backend yet; it links to a
+ * future /search route rather than pretending to work.
  */
 export function HeaderActions() {
   const cartCount = useCartItemCount();
-  const wishlistCount = useWishlistStore((state) => state.productIds.size);
+  const wishlistCount = useWishlistCount();
   const { data: session } = useSession();
   const accountHref = session ? "/account" : "/sign-in";
 
