@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { PlaceholderImage } from "@/components/shared/placeholder-image";
+import { ContentImage } from "@/components/shared/content-image";
 import { AddToCartButton } from "./add-to-cart-button";
 import { formatINR } from "@/lib/format";
 import type { Product } from "../types";
@@ -37,7 +37,12 @@ export function QuickViewTrigger({ product }: { product: Product }) {
           <DialogDescription>Quick view</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
-          <PlaceholderImage label={product.imageAlt} className="aspect-square rounded-md" />
+          <ContentImage
+            src={product.imageUrl}
+            alt={product.imageAlt}
+            className="aspect-square rounded-md"
+            sizes="(min-width: 640px) 50vw, 100vw"
+          />
           <div className="flex flex-col gap-3">
             <p className="text-xl font-semibold">{formatINR(product.price)}</p>
             <AddToCartButton productTitle={product.title} />

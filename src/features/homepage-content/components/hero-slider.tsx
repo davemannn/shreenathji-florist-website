@@ -7,7 +7,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { PlaceholderImage } from "@/components/shared/placeholder-image";
+import { ContentImage } from "@/components/shared/content-image";
 import { getHeroSlides } from "../queries";
 
 /**
@@ -18,7 +18,7 @@ import { getHeroSlides } from "../queries";
  *
  * A two-column text+image layout per slide (rather than text overlaid on a
  * full-bleed background image) avoids needing a photo to overlay against —
- * there isn't one yet, see PlaceholderImage.
+ * see ContentImage for the placeholder/real-photo fallback.
  */
 export async function HeroSlider() {
   const slides = await getHeroSlides();
@@ -26,7 +26,7 @@ export async function HeroSlider() {
   return (
     <Carousel opts={{ loop: true }} className="group">
       <CarouselContent className="ml-0">
-        {slides.map((slide) => (
+        {slides.map((slide, index) => (
           <CarouselItem key={slide.id} className="pl-0">
             <div className="grid lg:grid-cols-2">
               <div className="bg-cream flex flex-col justify-center gap-4 px-6 py-16 md:px-10 lg:px-16">
@@ -47,7 +47,13 @@ export async function HeroSlider() {
                   </Button>
                 </div>
               </div>
-              <PlaceholderImage label={slide.imageAlt} className="min-h-[280px] lg:min-h-[520px]" />
+              <ContentImage
+                src={slide.imageUrl}
+                alt={slide.imageAlt}
+                className="min-h-[280px] lg:min-h-[520px]"
+                sizes="(min-width: 1024px) 50vw, 100vw"
+                priority={index === 0}
+              />
             </div>
           </CarouselItem>
         ))}

@@ -1,3 +1,4 @@
+import { pexelsPhoto } from "@/lib/stock-photo";
 import type { HeroSlide, NewsletterTeaserContent, OccasionBanner, PromoBanner } from "./types";
 
 // Static fixtures for now — homepage content management (admin-editable,
@@ -13,6 +14,7 @@ const HERO_SLIDES: HeroSlide[] = [
     ctaLabel: "Shop Now",
     ctaHref: "/shop",
     imageAlt: "Hand-tied bouquet of fresh flowers",
+    imageUrl: pexelsPhoto("28115373", 1200),
   },
   {
     id: "2",
@@ -21,6 +23,7 @@ const HERO_SLIDES: HeroSlide[] = [
     ctaLabel: "Shop Birthday Flowers",
     ctaHref: "/occasions/birthday",
     imageAlt: "Birthday flower arrangement",
+    imageUrl: pexelsPhoto("27176823", 1200),
   },
   {
     id: "3",
@@ -29,6 +32,7 @@ const HERO_SLIDES: HeroSlide[] = [
     ctaLabel: "Order Now",
     ctaHref: "/same-day-delivery",
     imageAlt: "Fresh flowers ready for same-day delivery",
+    imageUrl: pexelsPhoto("13306125", 1200),
   },
 ];
 
@@ -40,6 +44,7 @@ const PROMO_BANNERS: PromoBanner[] = [
     ctaLabel: "Shop Now",
     href: "/shop/flowers",
     imageAlt: "Spring flower collection",
+    imageUrl: pexelsPhoto("30891127", 800),
   },
   {
     id: "2",
@@ -48,6 +53,7 @@ const PROMO_BANNERS: PromoBanner[] = [
     ctaLabel: "Shop Now",
     href: "/shop",
     imageAlt: "New arrival bouquets",
+    imageUrl: pexelsPhoto("15198293", 800),
   },
   {
     id: "3",
@@ -56,6 +62,7 @@ const PROMO_BANNERS: PromoBanner[] = [
     ctaLabel: "Shop Now",
     href: "/shop/flowers",
     imageAlt: "Staff-picked summer bouquet",
+    imageUrl: pexelsPhoto("5409690", 800),
   },
 ];
 
@@ -66,6 +73,7 @@ const OCCASION_BANNER: OccasionBanner = {
   ctaLabel: "Explore",
   ctaHref: "/occasions/birthday",
   imageAlt: "Birthday bouquet arrangement",
+  imageUrl: pexelsPhoto("7911051", 900),
 };
 
 const NEWSLETTER_TEASER: NewsletterTeaserContent = {

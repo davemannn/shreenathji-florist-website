@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SectionHeading } from "@/components/shared/section-heading";
-import { PlaceholderImage } from "@/components/shared/placeholder-image";
+import { ContentImage } from "@/components/shared/content-image";
 import { getFeaturedCategories } from "../queries";
 
 export async function TopCategories() {
@@ -16,9 +16,11 @@ export async function TopCategories() {
             href={`/shop/${category.slug}`}
             className="group flex flex-col items-center gap-3"
           >
-            <PlaceholderImage
-              label={category.imageAlt}
+            <ContentImage
+              src={category.imageUrl}
+              alt={category.imageAlt}
               className="aspect-square w-full rounded-full transition-transform group-hover:scale-[1.03]"
+              sizes="(min-width: 1024px) 16vw, 33vw"
             />
             <span className="text-sm font-medium">{category.name}</span>
           </Link>

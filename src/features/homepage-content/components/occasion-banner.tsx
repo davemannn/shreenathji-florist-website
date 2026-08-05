@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PlaceholderImage } from "@/components/shared/placeholder-image";
+import { ContentImage } from "@/components/shared/content-image";
 import { getOccasionBanner } from "../queries";
 
 export async function OccasionBanner() {
@@ -27,9 +27,11 @@ export async function OccasionBanner() {
             </Button>
           </div>
         </div>
-        <PlaceholderImage
-          label={banner.imageAlt}
+        <ContentImage
+          src={banner.imageUrl}
+          alt={banner.imageAlt}
           className="text-background/40 min-h-[240px] bg-transparent lg:min-h-full"
+          sizes="(min-width: 1024px) 50vw, 100vw"
         />
       </div>
     </section>

@@ -9,4 +9,5 @@ export interface Product {
   reviewCount: number;
   badge?: "sale" | "new" | "bestseller";
   imageAlt: string;
+  imageUrl?: string;
 }

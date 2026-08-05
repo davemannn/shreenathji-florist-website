@@ -1,3 +1,4 @@
+import { pexelsPhoto } from "@/lib/stock-photo";
 import type { Product } from "./types";
 
 const BEST_SELLERS: Product[] = [
@@ -11,6 +12,7 @@ const BEST_SELLERS: Product[] = [
     reviewCount: 128,
     badge: "sale",
     imageAlt: "Rose Elegance Bouquet",
+    imageUrl: pexelsPhoto("35672776", 600),
   },
   {
     id: "2",
@@ -21,6 +23,7 @@ const BEST_SELLERS: Product[] = [
     reviewCount: 64,
     badge: "bestseller",
     imageAlt: "Sunshine Gerbera Basket",
+    imageUrl: pexelsPhoto("18057437", 600),
   },
   {
     id: "3",
@@ -30,6 +33,7 @@ const BEST_SELLERS: Product[] = [
     rating: 4.8,
     reviewCount: 91,
     imageAlt: "Lily Whisper Vase",
+    imageUrl: pexelsPhoto("11196806", 600),
   },
   {
     id: "4",
@@ -40,6 +44,7 @@ const BEST_SELLERS: Product[] = [
     reviewCount: 213,
     badge: "bestseller",
     imageAlt: "Chocolate Truffle Cake",
+    imageUrl: pexelsPhoto("19036040", 600),
   },
   {
     id: "5",
@@ -51,6 +56,7 @@ const BEST_SELLERS: Product[] = [
     reviewCount: 47,
     badge: "sale",
     imageAlt: "Mixed Flowers & Teddy Combo",
+    imageUrl: pexelsPhoto("30531456", 600),
   },
   {
     id: "6",
@@ -60,6 +66,7 @@ const BEST_SELLERS: Product[] = [
     rating: 4.7,
     reviewCount: 58,
     imageAlt: "Orchid Charm Arrangement",
+    imageUrl: pexelsPhoto("15979836", 600),
   },
   {
     id: "7",
@@ -70,6 +77,7 @@ const BEST_SELLERS: Product[] = [
     reviewCount: 33,
     badge: "new",
     imageAlt: "Carnation Cheer Bunch",
+    imageUrl: pexelsPhoto("12944992", 600),
   },
   {
     id: "8",
@@ -79,6 +87,7 @@ const BEST_SELLERS: Product[] = [
     rating: 4.6,
     reviewCount: 87,
     imageAlt: "Red Velvet Cake",
+    imageUrl: pexelsPhoto("3081657", 600),
   },
 ];
 

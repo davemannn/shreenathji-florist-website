@@ -11,6 +11,14 @@ const nextConfig: NextConfig = {
         hostname: "res.cloudinary.com",
         pathname: "/**",
       },
+      {
+        // Temporary: free-license stock photos standing in for real product/
+        // site photography for client demo purposes. Remove once Cloudinary
+        // is wired up and real photography replaces every ContentImage src.
+        protocol: "https",
+        hostname: "images.pexels.com",
+        pathname: "/**",
+      },
     ],
   },
 };

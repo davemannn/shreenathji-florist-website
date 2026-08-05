@@ -1,5 +1,5 @@
 import { SectionHeading } from "@/components/shared/section-heading";
-import { PlaceholderImage } from "@/components/shared/placeholder-image";
+import { ContentImage } from "@/components/shared/content-image";
 import { getGalleryImages } from "../queries";
 
 export async function InstagramGrid() {
@@ -21,7 +21,12 @@ export async function InstagramGrid() {
             rel="noreferrer noopener"
             className="block"
           >
-            <PlaceholderImage label={image.imageAlt} className="aspect-square" />
+            <ContentImage
+              src={image.imageUrl}
+              alt={image.imageAlt}
+              className="aspect-square"
+              sizes="(min-width: 1024px) 16vw, 33vw"
+            />
           </a>
         ))}
       </div>

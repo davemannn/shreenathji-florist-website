@@ -6,6 +6,8 @@ export interface HeroSlide {
   ctaLabel: string;
   ctaHref: string;
   imageAlt: string;
+  /** Temporary stock photo — see queries.ts. Omit to fall back to a placeholder block. */
+  imageUrl?: string;
 }
 
 export interface PromoBanner {
@@ -15,6 +17,7 @@ export interface PromoBanner {
   ctaLabel: string;
   href: string;
   imageAlt: string;
+  imageUrl?: string;
 }
 
 export interface OccasionBanner {
@@ -24,6 +27,7 @@ export interface OccasionBanner {
   ctaLabel: string;
   ctaHref: string;
   imageAlt: string;
+  imageUrl?: string;
 }
 
 export interface NewsletterTeaserContent {

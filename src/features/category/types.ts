@@ -3,4 +3,5 @@ export interface Category {
   name: string;
   slug: string;
   imageAlt: string;
+  imageUrl?: string;
 }

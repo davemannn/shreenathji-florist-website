@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { PlaceholderImage } from "@/components/shared/placeholder-image";
+import { ContentImage } from "@/components/shared/content-image";
 import { StarRating } from "@/components/shared/star-rating";
 import { formatINR } from "@/lib/format";
 import { WishlistToggleButton } from "./wishlist-toggle-button";
@@ -27,7 +27,12 @@ export function ProductCard({ product }: { product: Product }) {
     <div className="group flex flex-col gap-3">
       <div className="relative">
         <Link href={productHref} className="block">
-          <PlaceholderImage label={product.imageAlt} className="aspect-4/5 rounded-md" />
+          <ContentImage
+            src={product.imageUrl}
+            alt={product.imageAlt}
+            className="aspect-4/5 rounded-md"
+            sizes="(min-width: 1024px) 25vw, 50vw"
+          />
         </Link>
         {product.badge ? (
           <Badge className="bg-brand text-brand-foreground absolute top-3 left-3 border-transparent">
