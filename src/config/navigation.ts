@@ -37,6 +37,7 @@ export const mainNav: NavItem[] = [
     ],
   },
   { label: "Decoration Services", href: "/decoration-services" },
+  { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
 
