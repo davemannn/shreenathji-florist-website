@@ -36,16 +36,7 @@ export const mainNav: NavItem[] = [
       { label: "New Baby", href: "/shop/new-baby" },
     ],
   },
-  {
-    label: "Delivery",
-    href: "/delivery",
-    children: [
-      { label: "Same Day Delivery", href: "/same-day-delivery" },
-      { label: "Midnight Delivery", href: "/midnight-delivery" },
-    ],
-  },
   { label: "Decoration Services", href: "/decoration-services" },
-  { label: "Gallery", href: "/gallery" },
   { label: "Contact", href: "/contact" },
 ];
 
