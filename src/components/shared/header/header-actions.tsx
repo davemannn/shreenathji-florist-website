@@ -5,6 +5,7 @@ import { Heart, Search, ShoppingBag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/stores/cart-store";
 import { useWishlistStore } from "@/stores/wishlist-store";
+import { useSession } from "@/lib/auth-client";
 
 function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -25,6 +26,8 @@ function CountBadge({ count }: { count: number }) {
 export function HeaderActions() {
   const cartCount = useCartStore((state) => state.itemCount);
   const wishlistCount = useWishlistStore((state) => state.productIds.size);
+  const { data: session } = useSession();
+  const accountHref = session ? "/account" : "/sign-in";
 
   return (
     <div className="flex items-center gap-1">
@@ -40,9 +43,9 @@ export function HeaderActions() {
       <Button
         variant="ghost"
         size="icon"
-        aria-label="Account"
+        aria-label={session ? `Account, signed in as ${session.user.name}` : "Sign in"}
         nativeButton={false}
-        render={<Link href="/account" />}
+        render={<Link href={accountHref} />}
       >
         <User aria-hidden="true" />
       </Button>

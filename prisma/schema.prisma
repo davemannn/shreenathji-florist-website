@@ -10,12 +10,72 @@ datasource db {
   provider = "mysql"
 }
 
-// Placeholder model — proves the Prisma -> MySQL/MariaDB -> generated client
-// pipeline works end to end. Full domain modeling (Product, Category, Order,
-// Customer, Coupon, Review, DeliverySlot, DeliveryCharge, GalleryImage,
-// BlogPost, SEO metadata, Settings, etc.) is its own dedicated,
-// separately-approved milestone — do not add real domain models here yet.
-model HealthCheck {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
+// ---------------------------------------------------------------------------
+// Auth models — required by Better Auth (src/server/auth/config.ts).
+// Field shapes match Better Auth's own documented schema exactly (verified
+// against node_modules/@better-auth/core/dist/db/schema/*.d.mts), plus the
+// role/banned/banReason/banExpires/impersonatedBy fields added by its admin
+// plugin. Full commerce domain modeling (Product, Order, Customer, etc.) is
+// its own separately-approved milestone — do not add those models here yet.
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          String?
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  token          String   @unique
+  expiresAt      DateTime
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
 }

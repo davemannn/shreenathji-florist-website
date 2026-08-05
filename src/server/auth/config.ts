@@ -1,9 +1,22 @@
-// Better Auth server configuration — STUB.
-//
-// This milestone only reserves the seam: the `better-auth` package is
-// installed, and route handlers / middleware will import a configured
-// instance from this file. Deciding the actual providers (email+password
-// vs OAuth), session strategy, and the admin/staff role model is its own
-// dedicated milestone — do not wire real logic here until that's approved.
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { admin } from "better-auth/plugins";
+import { nextCookies } from "better-auth/next-js";
+import { prisma } from "@/server/db/prisma";
 
-export {};
+/**
+ * Server-side Better Auth instance. Email/password only for now (no OAuth
+ * provider is registered yet — trivial to add later). The `admin` plugin
+ * adds `role`/`banned`/`banReason`/`banExpires` to the User model, used to
+ * gate the (admin) route group. `nextCookies()` must stay last in the
+ * plugins array — Better Auth enforces this itself.
+ */
+export const auth = betterAuth({
+  database: prismaAdapter(prisma, { provider: "mysql" }),
+  secret: process.env.BETTER_AUTH_SECRET,
+  baseURL: process.env.BETTER_AUTH_URL,
+  emailAndPassword: {
+    enabled: true,
+  },
+  plugins: [admin({ defaultRole: "user", adminRoles: ["admin"] }), nextCookies()],
+});

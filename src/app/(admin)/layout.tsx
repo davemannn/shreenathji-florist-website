@@ -1,7 +1,16 @@
-// Admin dashboard shell — PLACEHOLDER.
-// This route group will be the full replacement for wp-admin: sidebar/topbar
-// chrome, and — once the auth milestone lands — gated by role (admin/staff)
-// via middleware.ts, not just visually separated. No admin pages exist yet.
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/server/auth/config";
+
+// Admin dashboard shell — full sidebar/topbar chrome is a future milestone.
+// This is the authoritative gate: proxy.ts only fast-checks "is a session
+// cookie present," this does the real session + role lookup.
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth.api.getSession({ headers: await headers() });
+
+  if (!session || session.user.role !== "admin") {
+    redirect("/sign-in?redirectTo=/admin");
+  }
+
   return <>{children}</>;
 }
