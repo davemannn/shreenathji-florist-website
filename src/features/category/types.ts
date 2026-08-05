@@ -1,3 +1,6 @@
-// Domain types for the "category" feature.
-// Populated when the category feature is built out.
-export {};
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  imageAlt: string;
+}

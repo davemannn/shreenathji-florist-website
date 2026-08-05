@@ -1,3 +1,5 @@
-// Domain types for the "gallery" feature.
-// Populated when the gallery feature is built out.
-export {};
+export interface GalleryImage {
+  id: string;
+  imageAlt: string;
+  href: string;
+}

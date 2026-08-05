@@ -1,7 +1,12 @@
-// Storefront shell — PLACEHOLDER.
-// Will render the public header/footer chrome (Header, Footer from
-// components/shared) once the homepage-recreation milestone begins.
-// No public pages are nested under this group yet.
+import { SiteHeader } from "@/components/shared/site-header";
+import { SiteFooter } from "@/components/shared/site-footer";
+
 export default function StorefrontLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <div className="flex min-h-full flex-col">
+      <SiteHeader />
+      <main className="flex-1">{children}</main>
+      <SiteFooter />
+    </div>
+  );
 }
