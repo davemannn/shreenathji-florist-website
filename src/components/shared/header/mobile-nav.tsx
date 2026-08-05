@@ -32,7 +32,7 @@ export function MobileNav() {
           <Accordion className="flex flex-col gap-0">
             {mainNav.map((item) =>
               item.children ? (
-                <AccordionItem key={item.href} value={item.href}>
+                <AccordionItem key={item.label} value={item.label}>
                   <AccordionTrigger>{item.label}</AccordionTrigger>
                   <AccordionContent>
                     <ul className="flex flex-col gap-2 pl-3">
@@ -52,7 +52,7 @@ export function MobileNav() {
                 </AccordionItem>
               ) : (
                 <Link
-                  key={item.href}
+                  key={item.label}
                   href={item.href}
                   onClick={() => setOpen(false)}
                   className="border-transparent py-2.5 text-sm font-medium not-last:border-b"

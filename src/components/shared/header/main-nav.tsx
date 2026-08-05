@@ -20,7 +20,7 @@ export function MainNav() {
       <NavigationMenuList>
         {mainNav.map((item) =>
           item.children ? (
-            <NavigationMenuItem key={item.href}>
+            <NavigationMenuItem key={item.label}>
               <NavigationMenuTrigger>{item.label}</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid w-48 gap-1">
@@ -35,7 +35,7 @@ export function MainNav() {
               </NavigationMenuContent>
             </NavigationMenuItem>
           ) : (
-            <NavigationMenuItem key={item.href}>
+            <NavigationMenuItem key={item.label}>
               <Link href={item.href} className={cn(navigationMenuTriggerStyle())}>
                 {item.label}
               </Link>

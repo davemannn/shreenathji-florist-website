@@ -77,7 +77,7 @@ const CATEGORIES = [
     name: "Wedding",
     isOccasion: true,
     isFeatured: false,
-    image: pexels("59948", 400),
+    image: pexels("5060099", 400),
   },
   {
     slug: "sympathy",
@@ -218,7 +218,7 @@ const PRODUCTS: SeedProduct[] = [
     categories: ["flowers", "wedding"],
     rating: 4.9,
     reviewCount: 19,
-    images: [pexels("59948"), pexels("4034248")],
+    images: [pexels("5060099"), pexels("4034248")],
     variants: [
       { label: "Bridal Posy", price: 1499, stock: 10, isDefault: true },
       { label: "Grand Bouquet", price: 2499, stock: 8, isDefault: false },

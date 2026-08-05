@@ -16,20 +16,24 @@ export const mainNav: NavItem[] = [
     children: [
       { label: "Flowers", href: "/shop/flowers" },
       { label: "Cakes", href: "/shop/cakes" },
+      { label: "Plants", href: "/shop/plants" },
       { label: "Greeting Cards", href: "/shop/greeting-cards" },
       { label: "Teddy Bears", href: "/shop/teddy-bears" },
       { label: "Chocolates", href: "/shop/chocolates" },
     ],
   },
   {
+    // Occasions route to the same /shop/[category] page as Shop categories —
+    // both are just Category rows (an `isOccasion` flag distinguishes them),
+    // not two parallel listing-page trees.
     label: "Occasions",
-    href: "/occasions",
+    href: "/shop",
     children: [
-      { label: "Birthday", href: "/occasions/birthday" },
-      { label: "Anniversary", href: "/occasions/anniversary" },
-      { label: "Wedding", href: "/occasions/wedding" },
-      { label: "Sympathy", href: "/occasions/sympathy" },
-      { label: "New Baby", href: "/occasions/new-baby" },
+      { label: "Birthday", href: "/shop/birthday" },
+      { label: "Anniversary", href: "/shop/anniversary" },
+      { label: "Wedding", href: "/shop/wedding" },
+      { label: "Sympathy", href: "/shop/sympathy" },
+      { label: "New Baby", href: "/shop/new-baby" },
     ],
   },
   {
