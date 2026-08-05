@@ -58,6 +58,11 @@ export async function findOrderByNumber(orderNumber: string, userId: string) {
   });
 }
 
+/** Scoped by userId too — never trust a client-supplied orderId alone before mutating payment state. */
+export async function findOrderById(orderId: string, userId: string) {
+  return prisma.order.findFirst({ where: { id: orderId, userId } });
+}
+
 export async function attachRazorpayOrderId(orderId: string, razorpayOrderId: string) {
   return prisma.order.update({
     where: { id: orderId },

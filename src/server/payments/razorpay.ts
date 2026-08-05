@@ -30,6 +30,15 @@ export async function createRazorpayOrder(amountInRupees: number, receipt: strin
   });
 }
 
+/** The public key id the client-side Checkout.js widget needs — safe to send to the browser (unlike the secret). */
+export function getRazorpayPublicKeyId(): string {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  if (!keyId) {
+    throw new Error("Razorpay is not configured: set RAZORPAY_KEY_ID.");
+  }
+  return keyId;
+}
+
 interface VerifyRazorpaySignatureParams {
   razorpayOrderId: string;
   razorpayPaymentId: string;

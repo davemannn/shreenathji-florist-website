@@ -13,11 +13,19 @@ export interface CartLineItem {
   quantity: number;
 }
 
+export interface AppliedCoupon {
+  code: string;
+  discount: number;
+}
+
 interface CartState {
   items: CartLineItem[];
+  /** Persisted alongside items so it survives the cart -> checkout page navigation. */
+  appliedCoupon: AppliedCoupon | null;
   addItem: (item: Omit<CartLineItem, "quantity">, quantity?: number) => void;
   removeItem: (variantId: string) => void;
   updateQuantity: (variantId: string, quantity: number) => void;
+  setCoupon: (coupon: AppliedCoupon | null) => void;
   clear: () => void;
 }
 
@@ -31,6 +39,7 @@ export const useCartStore = create<CartState>()(
   persist(
     (set) => ({
       items: [],
+      appliedCoupon: null,
       addItem: (item, quantity = 1) =>
         set((state) => {
           const existing = state.items.find((line) => line.variantId === item.variantId);
@@ -56,7 +65,8 @@ export const useCartStore = create<CartState>()(
                   line.variantId === variantId ? { ...line, quantity } : line,
                 ),
         })),
-      clear: () => set({ items: [] }),
+      setCoupon: (coupon) => set({ appliedCoupon: coupon }),
+      clear: () => set({ items: [], appliedCoupon: null }),
     }),
     { name: "cart-storage" },
   ),

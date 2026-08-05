@@ -8,7 +8,6 @@ import { useCartStore } from "@/stores/cart-store";
 import { CartLineItemRow } from "./cart-line-item";
 import { CartSummary } from "./cart-summary";
 import { CouponInput } from "./coupon-input";
-import type { AppliedCoupon } from "../types";
 
 function EmptyCart() {
   return (
@@ -27,7 +26,8 @@ function EmptyCart() {
 
 export function CartView() {
   const items = useCartStore((state) => state.items);
-  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  const appliedCoupon = useCartStore((state) => state.appliedCoupon);
+  const setCoupon = useCartStore((state) => state.setCoupon);
   const [hydrated, setHydrated] = useState(false);
   // Same hydration-safety pattern as useCartItemCount (src/stores/cart-store.ts)
   // — this whole page's content depends on localStorage-backed cart state.
@@ -47,7 +47,7 @@ export function CartView() {
         ))}
       </div>
       <div className="flex flex-col gap-4">
-        <CouponInput subtotal={subtotal} appliedCoupon={appliedCoupon} onApply={setAppliedCoupon} />
+        <CouponInput subtotal={subtotal} appliedCoupon={appliedCoupon} onApply={setCoupon} />
         <CartSummary subtotal={subtotal} appliedCoupon={appliedCoupon} />
       </div>
     </div>
