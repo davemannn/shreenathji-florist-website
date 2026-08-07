@@ -1,22 +1,30 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
-import { auth } from "@/server/auth/config";
+import { requireAdminSession } from "@/server/auth/require-admin";
+import { can } from "@/server/auth/permissions";
 
 export const metadata: Metadata = {
   title: "Admin Dashboard",
 };
 
-// Placeholder — proves role-gating works end to end. Real dashboard
-// (orders, products, analytics, etc.) is its own future milestone.
+// Placeholder landing — real analytics (revenue trends, order volume, top
+// products, delivery performance) is Phase 5 of the admin panel plan. This
+// phase proves the RBAC gate, shell, and role-aware fallback routing work.
 export default async function AdminDashboardPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await requireAdminSession("analytics:view:operational");
+  const seesFinancials = can(session.role, "analytics:view:financial");
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-16 md:px-6 lg:px-8">
-      <h1 className="text-3xl">Admin Dashboard</h1>
-      <p className="text-muted-foreground mt-2 text-sm">
-        Signed in as {session?.user.name} ({session?.user.email}). Real admin features — orders,
-        products, inventory, analytics — land in a future milestone.
+    <div className="flex flex-col gap-2">
+      <h1 className="text-2xl font-semibold">Dashboard</h1>
+      <p className="text-muted-foreground text-sm">
+        Signed in as {session.name} ({session.email}).
+      </p>
+      <p className="text-muted-foreground mt-4 text-sm">
+        Real analytics — revenue trends, order volume, top products, delivery performance — land in
+        a later phase.{" "}
+        {seesFinancials
+          ? "You'll see full financial figures here."
+          : "You'll see operational metrics here (no revenue/financial figures for your role)."}
       </p>
     </div>
   );

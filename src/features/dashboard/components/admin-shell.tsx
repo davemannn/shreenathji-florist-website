@@ -1,0 +1,114 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Menu, LogOut, User as UserIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { authClient } from "@/lib/auth-client";
+import type { AdminRole } from "@/server/auth/permissions";
+import { AdminNavList } from "./admin-nav-list";
+
+const ROLE_LABELS: Record<AdminRole, string> = {
+  super_admin: "Super Admin",
+  admin: "Admin",
+  store_manager: "Store Manager",
+  delivery_guy: "Delivery",
+};
+
+interface AdminShellProps {
+  role: AdminRole;
+  name: string;
+  email: string;
+  children: React.ReactNode;
+}
+
+export function AdminShell({ role, name, email, children }: AdminShellProps) {
+  const router = useRouter();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  async function handleSignOut() {
+    await authClient.signOut();
+    router.push("/sign-in");
+    router.refresh();
+  }
+
+  return (
+    <div className="bg-muted/30 min-h-screen">
+      {/* Desktop sidebar */}
+      <aside className="bg-background fixed inset-y-0 left-0 hidden w-60 flex-col border-r lg:flex">
+        <div className="flex h-14 items-center border-b px-4">
+          <Link href="/admin" className="font-heading text-lg">
+            Shreenathji <span className="text-brand">Admin</span>
+          </Link>
+        </div>
+        <div className="flex-1 overflow-y-auto p-3">
+          <AdminNavList role={role} />
+        </div>
+      </aside>
+
+      {/* Mobile sheet nav */}
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent side="left" className="w-64 p-0">
+          <SheetHeader className="border-b">
+            <SheetTitle>
+              Shreenathji <span className="text-brand">Admin</span>
+            </SheetTitle>
+          </SheetHeader>
+          <div className="p-3">
+            <AdminNavList role={role} onNavigate={() => setMobileNavOpen(false)} />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <div className="lg:pl-60">
+        {/* Topbar */}
+        <header className="bg-background sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b px-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            aria-label="Open menu"
+            onClick={() => setMobileNavOpen(true)}
+          >
+            <Menu aria-hidden="true" />
+          </Button>
+
+          <div className="ml-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-2" />}>
+                <UserIcon className="size-4" aria-hidden="true" />
+                <span className="max-w-32 truncate">{name}</span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-foreground font-medium">{name}</span>
+                    <span className="text-muted-foreground text-xs font-normal">{email}</span>
+                    <span className="text-brand text-xs font-normal">{ROLE_LABELS[role]}</span>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
+                  <LogOut aria-hidden="true" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+
+        <main className="p-4 md:p-6">{children}</main>
+      </div>
+    </div>
+  );
+}

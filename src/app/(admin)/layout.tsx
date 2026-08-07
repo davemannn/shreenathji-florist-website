@@ -1,16 +1,17 @@
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { auth } from "@/server/auth/config";
+import { requireAdminSession } from "@/server/auth/require-admin";
+import { AdminShell } from "@/features/dashboard/components/admin-shell";
 
-// Admin dashboard shell — full sidebar/topbar chrome is a future milestone.
-// This is the authoritative gate: proxy.ts only fast-checks "is a session
-// cookie present," this does the real session + role lookup.
+// Real gate: any staff role (super_admin/admin/store_manager/delivery_guy)
+// gets past this layout — the finer-grained "can this role actually do X"
+// check happens per-page/per-action via requireAdminSession(capability)/
+// requireAdminCapability(capability), not here. proxy.ts only fast-checks
+// "is a session cookie present" before this ever runs.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await requireAdminSession();
 
-  if (!session || session.user.role !== "admin") {
-    redirect("/sign-in?redirectTo=/admin");
-  }
-
-  return <>{children}</>;
+  return (
+    <AdminShell role={session.role} name={session.name} email={session.email}>
+      {children}
+    </AdminShell>
+  );
 }
