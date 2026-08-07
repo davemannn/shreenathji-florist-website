@@ -1,4 +1,7 @@
 import { prisma } from "@/server/db/prisma";
+import type { Prisma } from "@/generated/prisma/client";
+import { SINGLETON_ID } from "@/server/repositories/store-settings.repository";
+import { financialYearFor, formatInvoiceNumber } from "@/lib/tax";
 
 export interface CreateOrderItemInput {
   productId?: string;
@@ -9,6 +12,10 @@ export interface CreateOrderItemInput {
   unitPrice: number;
   quantity: number;
   lineTotal: number;
+  gstRate: number;
+  hsnCode?: string;
+  taxableValue: number;
+  taxAmount: number;
 }
 
 export interface CreateOrderInput {
@@ -31,6 +38,14 @@ export interface CreateOrderInput {
   messageCard?: string;
   giftWrap: boolean;
   couponId?: string;
+  sellerGstin?: string;
+  sellerState?: string;
+  isInterState: boolean;
+  taxableValue: number;
+  cgstAmount: number;
+  sgstAmount: number;
+  igstAmount: number;
+  totalTax: number;
   items: CreateOrderItemInput[];
 }
 
@@ -67,6 +82,23 @@ export async function findOrderByNumber(orderNumber: string, userId: string) {
   });
 }
 
+/**
+ * Unscoped by userId — the invoice route authorizes separately (order
+ * owner OR staff with orders:view:all), unlike every other customer-facing
+ * lookup which scopes by userId as its only access check.
+ */
+export async function findOrderByNumberForInvoice(orderNumber: string) {
+  return prisma.order.findFirst({
+    where: { orderNumber },
+    include: {
+      items: true,
+      deliverySlot: true,
+      coupon: true,
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+}
+
 /** Scoped by userId too — never trust a client-supplied orderId alone before mutating payment state. */
 export async function findOrderById(orderId: string, userId: string) {
   return prisma.order.findFirst({ where: { id: orderId, userId } });
@@ -79,17 +111,71 @@ export async function attachRazorpayOrderId(orderId: string, razorpayOrderId: st
   });
 }
 
-export async function markOrderPaid(orderId: string, razorpayPaymentId: string) {
-  return prisma.order.update({
+/**
+ * Assigns the next sequential invoice number, scoped to the current Indian
+ * financial year (Apr–Mar) — GST invoice series conventionally restart each
+ * FY. Only ever called from within the same transaction as the order's
+ * confirmation update, so a payment/COD-accept that fails partway never
+ * burns a number. Idempotent — a second call on an already-invoiced order
+ * is a no-op (guards against a retried webhook/action re-confirming).
+ *
+ * The FY-rollover branch (reading lastInvoiceFY then deciding to reset to 1)
+ * has a narrow theoretical race under two orders confirming in the same
+ * instant across a financial-year boundary — accepted as negligible for
+ * this business's order volume rather than adding SELECT ... FOR UPDATE
+ * complexity for a once-a-year edge case.
+ */
+async function assignInvoiceNumberIfNeeded(tx: Prisma.TransactionClient, orderId: string) {
+  const order = await tx.order.findUniqueOrThrow({
     where: { id: orderId },
-    data: { paymentStatus: "PAID", status: "CONFIRMED", razorpayPaymentId },
+    select: { invoiceNumber: true },
+  });
+  if (order.invoiceNumber) return;
+
+  const now = new Date();
+  const fy = financialYearFor(now);
+  const settings = await tx.storeSettings.findUniqueOrThrow({ where: { id: SINGLETON_ID } });
+  const isNewFY = settings.lastInvoiceFY !== fy;
+
+  const updatedSettings = await tx.storeSettings.update({
+    where: { id: SINGLETON_ID },
+    data: isNewFY
+      ? { lastInvoiceNumber: 1, lastInvoiceFY: fy }
+      : { lastInvoiceNumber: { increment: 1 } },
+  });
+
+  await tx.order.update({
+    where: { id: orderId },
+    data: {
+      invoiceNumber: formatInvoiceNumber(
+        updatedSettings.invoicePrefix,
+        fy,
+        updatedSettings.lastInvoiceNumber,
+      ),
+      invoicedAt: now,
+    },
+  });
+}
+
+export async function markOrderPaid(orderId: string, razorpayPaymentId: string) {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.update({
+      where: { id: orderId },
+      data: { paymentStatus: "PAID", status: "CONFIRMED", razorpayPaymentId },
+    });
+    await assignInvoiceNumberIfNeeded(tx, orderId);
+    return order;
   });
 }
 
 export async function markOrderConfirmedCod(orderId: string) {
-  return prisma.order.update({
-    where: { id: orderId },
-    data: { status: "CONFIRMED" },
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.update({
+      where: { id: orderId },
+      data: { status: "CONFIRMED" },
+    });
+    await assignInvoiceNumberIfNeeded(tx, orderId);
+    return order;
   });
 }
 
@@ -255,4 +341,62 @@ export async function getDeliveryNotificationSummary(deliveryPersonId: string) {
   ]);
 
   return { assignedCount, latestUpdateAt: latest?.updatedAt ?? null };
+}
+
+// ---------------------------------------------------------------------------
+// Reports + analytics dashboard.
+// ---------------------------------------------------------------------------
+
+export interface DateRangeParams {
+  from: Date;
+  to: Date;
+}
+
+/**
+ * Cancelled orders are excluded — they never represent real revenue/tax
+ * collected, so including them would overstate every report. Fetched with
+ * items in one query and aggregated in the application layer (reports/
+ * queries.ts) rather than several grouped SQL queries — this catalog's
+ * order volume (a single-city florist) doesn't need the complexity.
+ */
+export async function listOrdersInRange(params: DateRangeParams) {
+  return prisma.order.findMany({
+    where: { createdAt: { gte: params.from, lte: params.to }, status: { not: "CANCELLED" } },
+    include: { items: true, user: { select: { id: true, name: true, email: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+/** Per-customer lifetime first-order date + order count, across ALL time (not just a report's date range) — lets the customer report tell new vs. repeat customers apart. */
+export async function getCustomerLifetimeStats() {
+  const rows = await prisma.order.groupBy({
+    by: ["userId"],
+    where: { status: { not: "CANCELLED" } },
+    _min: { createdAt: true },
+    _count: { _all: true },
+  });
+  return new Map(
+    rows.map((row) => [
+      row.userId,
+      { firstOrderAt: row._min.createdAt!, lifetimeOrderCount: row._count._all },
+    ]),
+  );
+}
+
+/** Order counts by status within the range — powers the dashboard's operational status breakdown. */
+export async function getOrderStatusBreakdown(params: DateRangeParams) {
+  const rows = await prisma.order.groupBy({
+    by: ["status"],
+    where: { createdAt: { gte: params.from, lte: params.to } },
+    _count: { _all: true },
+  });
+  return rows.map((row) => ({ status: row.status, count: row._count._all }));
+}
+
+/** Orders delivered within the range, with just enough to compute fulfillment time (createdAt -> deliveredAt). */
+export async function listDeliveredOrdersInRange(params: DateRangeParams) {
+  return prisma.order.findMany({
+    where: { deliveredAt: { gte: params.from, lte: params.to } },
+    select: { createdAt: true, deliveredAt: true },
+  });
 }

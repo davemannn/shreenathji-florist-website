@@ -149,6 +149,16 @@ model Category {
   isOccasion        Boolean           @default(false)
   isFeatured        Boolean           @default(false)
   sortOrder         Int               @default(0)
+  /// GST% for products in this category (e.g. 0 for fresh flowers, 18 for
+  /// chocolates) — null means "not set yet", falls back to
+  /// StoreSettings.defaultGstRate. Only meaningful on Shop categories
+  /// (isOccasion: false) — see lib/tax.ts's resolveProductTax, which skips
+  /// Occasion categories (Birthday, Anniversary, ...) since they're a
+  /// cross-cutting tag, not a product type.
+  gstRate           Int?
+  /// HSN (goods) / SAC (services) code for GST invoices — same isOccasion
+  /// caveat as gstRate above.
+  hsnCode           String?
   products          ProductCategory[]
 }
 
@@ -258,16 +268,16 @@ model Coupon {
 }
 
 model Order {
-  id                       String               @id @default(cuid())
-  orderNumber              String               @unique
+  id                       String        @id @default(cuid())
+  orderNumber              String        @unique
   userId                   String
-  status                   OrderStatus          @default(PENDING)
+  status                   OrderStatus   @default(PENDING)
   subtotal                 Int
-  discount                 Int                  @default(0)
-  deliveryCharge           Int                  @default(0)
+  discount                 Int           @default(0)
+  deliveryCharge           Int           @default(0)
   total                    Int
   paymentMethod            PaymentMethod
-  paymentStatus            PaymentStatus        @default(PENDING)
+  paymentStatus            PaymentStatus @default(PENDING)
   razorpayOrderId          String?
   razorpayPaymentId        String?
   recipientName            String
@@ -280,19 +290,42 @@ model Order {
   deliveryDate             DateTime
   deliverySlotId           String?
   messageCard              String?
-  giftWrap                 Boolean              @default(false)
+  giftWrap                 Boolean       @default(false)
   couponId                 String?
   // Admin panel — order management (Phase 2).
   assignedDeliveryPersonId String?
   deliveredAt              DateTime?
-  createdAt                DateTime             @default(now())
-  updatedAt                DateTime             @updatedAt
-  user                     User                 @relation(fields: [userId], references: [id])
-  deliverySlot             DeliverySlot?        @relation(fields: [deliverySlotId], references: [id])
-  coupon                   Coupon?              @relation(fields: [couponId], references: [id])
-  assignedDeliveryPerson   User?                @relation("DeliveryAssignments", fields: [assignedDeliveryPersonId], references: [id])
-  items                    OrderItem[]
-  statusHistory            OrderStatusHistory[]
+
+  // --- Tax (GST) — snapshotted at order-confirmation time so a rate or
+  // GSTIN change later never rewrites an already-issued invoice's numbers.
+  // `total` above is unchanged by any of this — it's still what the
+  // customer paid; these fields just document its tax-inclusive breakup.
+  /// Seller's GSTIN as of this order — null if not GST-registered (or not
+  /// yet configured) when the order was placed; the invoice then omits the
+  /// GST block rather than show stale/blank tax data.
+  sellerGstin   String?
+  sellerState   String?
+  /// deliveryState != sellerState → IGST; same state → CGST+SGST split.
+  isInterState  Boolean   @default(false)
+  taxableValue  Int       @default(0)
+  cgstAmount    Int       @default(0)
+  sgstAmount    Int       @default(0)
+  igstAmount    Int       @default(0)
+  totalTax      Int       @default(0)
+  /// Assigned once, at order confirmation (COD accept / payment verified) —
+  /// not at cart-checkout time — so a payment that never completes doesn't
+  /// burn a sequential invoice number. Format: "{prefix}/{FY}/{sequence}".
+  invoiceNumber String?   @unique
+  invoicedAt    DateTime?
+
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  user                   User                 @relation(fields: [userId], references: [id])
+  deliverySlot           DeliverySlot?        @relation(fields: [deliverySlotId], references: [id])
+  coupon                 Coupon?              @relation(fields: [couponId], references: [id])
+  assignedDeliveryPerson User?                @relation("DeliveryAssignments", fields: [assignedDeliveryPersonId], references: [id])
+  items                  OrderItem[]
+  statusHistory          OrderStatusHistory[]
 
   @@index([userId])
   @@index([assignedDeliveryPersonId])
@@ -328,6 +361,12 @@ model OrderItem {
   unitPrice    Int
   quantity     Int
   lineTotal    Int
+  /// Tax snapshot at order time — see Order's tax fields for why these
+  /// aren't derived live from the product's current category.
+  gstRate      Int             @default(0)
+  hsnCode      String?
+  taxableValue Int             @default(0)
+  taxAmount    Int             @default(0)
   order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product      Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
   variant      ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
@@ -434,17 +473,48 @@ model GiftCardAdjustment {
 /// (super_admin/admin) can edit; settings:view (store_manager too) is
 /// read-only — see permissions.ts.
 model StoreSettings {
-  id                    String   @id @default("singleton")
+  id                    String @id @default("singleton")
   /// ₹, flat — added to every order unless the subtotal clears freeDeliveryThreshold.
-  baseDeliveryCharge    Int      @default(49)
-  freeDeliveryThreshold Int      @default(999)
+  baseDeliveryCharge    Int    @default(49)
+  freeDeliveryThreshold Int    @default(999)
   /// IST 24h hour after which same-day Midnight-slot booking closes and
   /// Express/Instant starts carrying Midnight pricing instead.
-  midnightCutoffHour    Int      @default(20)
+  midnightCutoffHour    Int    @default(20)
   /// ₹ — shown on the Same Day Delivery marketing page.
-  expressCharge         Int      @default(99)
+  expressCharge         Int    @default(99)
   /// ₹ — the Midnight slot's own surcharge, and what Express carries once
   /// booked same-day past midnightCutoffHour.
-  midnightCharge        Int      @default(199)
-  updatedAt             DateTime @updatedAt
+  midnightCharge        Int    @default(199)
+
+  // --- Tax (GST) — used for invoice generation and reporting. Prices
+  // throughout the storefront are tax-INCLUSIVE (standard for Indian D2C
+  // retail — the price shown is the price paid); these fields let invoices
+  // and reports back-calculate the CGST/SGST/IGST breakup without changing
+  // any checkout total. ---
+  /// This business's GSTIN. Null until set — invoices omit the GST block
+  /// entirely (and stay non-tax-invoices) rather than show a blank GSTIN.
+  gstin                 String?
+  legalBusinessName     String?
+  registeredAddressLine String?
+  registeredCity        String?
+  /// The state GST registration is under — compared against each order's
+  /// delivery state to decide CGST+SGST (same state) vs IGST (different state).
+  registeredState       String  @default("Gujarat")
+  registeredPincode     String?
+  /// Fallback GST% for a product whose category has no rate configured —
+  /// never silently taxed at 0% just because a category was missed.
+  defaultGstRate        Int     @default(0)
+  /// e.g. "SF" — invoice numbers are formatted "{prefix}/{FY}/{sequence}",
+  /// FY being the Indian financial year (Apr–Mar) the order was confirmed in.
+  invoicePrefix         String  @default("SF")
+  /// Last sequence number issued, per financial year — see
+  /// order.repository.ts's invoice-numbering transaction. Reset to 0 at the
+  /// start of each new FY (tracked via lastInvoiceFY below) since GST invoice
+  /// series conventionally restart each year.
+  lastInvoiceNumber     Int     @default(0)
+  /// e.g. "2526" for FY 2025-26 — the FY lastInvoiceNumber was last issued
+  /// in, so the counter can detect a new year and reset.
+  lastInvoiceFY         String?
+
+  updatedAt DateTime @updatedAt
 }

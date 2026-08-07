@@ -40,10 +40,13 @@ export function CategoryForm({ category }: { category?: AdminCategory }) {
       imageCloudinaryId: category?.imageCloudinaryId ?? "",
       isOccasion: category?.isOccasion ?? false,
       isFeatured: category?.isFeatured ?? false,
+      gstRate: category?.gstRate,
+      hsnCode: category?.hsnCode ?? "",
     },
   });
   const { setValue } = form;
   const imageUrl = useWatch({ control: form.control, name: "imageUrl" });
+  const isOccasion = useWatch({ control: form.control, name: "isOccasion" });
 
   async function onSubmit(values: CategoryFormValues) {
     try {
@@ -166,6 +169,40 @@ export function CategoryForm({ category }: { category?: AdminCategory }) {
             )}
           />
         </div>
+
+        {!isOccasion ? (
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="gstRate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>GST rate (%)</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} value={(field.value as number) ?? ""} />
+                  </FormControl>
+                  <FormDescription>
+                    Leave blank to fall back to Settings&rsquo; default rate.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="hsnCode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>HSN code</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="0603" />
+                  </FormControl>
+                  <FormDescription>For GST invoices.</FormDescription>
+                </FormItem>
+              )}
+            />
+          </div>
+        ) : null}
 
         <Button
           type="submit"

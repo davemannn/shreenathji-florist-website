@@ -1,11 +1,20 @@
 import {
   findOrderByIdAdmin,
+  findOrderByNumberForInvoice,
   listOrdersAdmin as listOrdersAdminRepo,
   listOrdersForDeliveryPerson,
   listActiveDeliveryPersons,
   type ListOrdersAdminParams,
 } from "@/server/repositories/order.repository";
-import type { DeliveryOrderCard, DeliveryPersonOption, OrderDetail, OrderListItem } from "./types";
+import { getStoreSettings } from "@/features/settings/queries";
+import { siteConfig } from "@/config/site";
+import type {
+  DeliveryOrderCard,
+  DeliveryPersonOption,
+  InvoiceData,
+  OrderDetail,
+  OrderListItem,
+} from "./types";
 
 type OrderRow = Awaited<ReturnType<typeof listOrdersAdminRepo>>["orders"][number];
 type OrderDetailRow = NonNullable<Awaited<ReturnType<typeof findOrderByIdAdmin>>>;
@@ -112,4 +121,67 @@ export async function getMyDeliveries(deliveryPersonId: string): Promise<Deliver
 export async function getActiveDeliveryPersons(): Promise<DeliveryPersonOption[]> {
   const rows = await listActiveDeliveryPersons();
   return rows.map((row) => ({ id: row.id, name: row.name, phone: row.phone ?? undefined }));
+}
+
+// ---------------------------------------------------------------------------
+// GST invoice — /invoice/[orderNumber].
+// ---------------------------------------------------------------------------
+
+export async function getInvoiceData(orderNumber: string): Promise<InvoiceData | null> {
+  const order = await findOrderByNumberForInvoice(orderNumber);
+  if (!order) return null;
+
+  const settings = await getStoreSettings();
+
+  return {
+    orderNumber: order.orderNumber,
+    invoiceNumber: order.invoiceNumber ?? undefined,
+    invoicedAt: order.invoicedAt?.toISOString(),
+    createdAt: order.createdAt.toISOString(),
+    paymentMethod: order.paymentMethod,
+    paymentStatus: order.paymentStatus,
+
+    // Business name/address are display-only — safe to show current
+    // Settings even for an old order. GSTIN/state are the actual
+    // tax-determining facts, so those come from the order's own snapshot
+    // (see order.service.ts) instead, frozen at the time it was invoiced.
+    sellerName: settings.legalBusinessName || siteConfig.name,
+    sellerGstin: order.sellerGstin ?? undefined,
+    sellerAddressLine: settings.registeredAddressLine,
+    sellerCity: settings.registeredCity,
+    sellerState: order.sellerState ?? settings.registeredState,
+    sellerPincode: settings.registeredPincode,
+
+    buyerUserId: order.userId,
+    buyerName: order.recipientName,
+    buyerPhone: order.recipientPhone,
+    buyerAddressLine1: order.deliveryLine1,
+    buyerAddressLine2: order.deliveryLine2 ?? undefined,
+    buyerCity: order.deliveryCity,
+    buyerState: order.deliveryState,
+    buyerPincode: order.deliveryPincode,
+
+    items: order.items.map((item) => ({
+      productTitle: item.productTitle,
+      variantLabel: item.variantLabel ?? undefined,
+      hsnCode: item.hsnCode ?? undefined,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      lineTotal: item.lineTotal,
+      gstRate: item.gstRate,
+      taxableValue: item.taxableValue,
+      taxAmount: item.taxAmount,
+    })),
+
+    subtotal: order.subtotal,
+    discount: order.discount,
+    deliveryCharge: order.deliveryCharge,
+    taxableValue: order.taxableValue,
+    cgstAmount: order.cgstAmount,
+    sgstAmount: order.sgstAmount,
+    igstAmount: order.igstAmount,
+    totalTax: order.totalTax,
+    total: order.total,
+    isInterState: order.isInterState,
+  };
 }

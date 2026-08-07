@@ -1,7 +1,7 @@
 import { prisma } from "@/server/db/prisma";
 
-/** Fixed id — StoreSettings is always exactly one row. */
-const SINGLETON_ID = "singleton";
+/** Fixed id — StoreSettings is always exactly one row. Exported for order.repository.ts's invoice-numbering transaction. */
+export const SINGLETON_ID = "singleton";
 
 /** Upsert-on-read: creates the row with schema defaults the first time anything asks for it. */
 export async function getStoreSettings() {
@@ -18,6 +18,18 @@ export interface UpdateStoreSettingsInput {
   midnightCutoffHour: number;
   expressCharge: number;
   midnightCharge: number;
+  // `| null` (not just optional) — Prisma's update input treats `undefined`
+  // as "leave unchanged" but `null` as "clear it"; these fields need to be
+  // clearable (e.g. removing a GSTIN), so callers must pass null explicitly
+  // rather than omitting the key.
+  gstin?: string | null;
+  legalBusinessName?: string | null;
+  registeredAddressLine?: string | null;
+  registeredCity?: string | null;
+  registeredState: string;
+  registeredPincode?: string | null;
+  defaultGstRate: number;
+  invoicePrefix: string;
 }
 
 export async function updateStoreSettings(input: UpdateStoreSettingsInput) {

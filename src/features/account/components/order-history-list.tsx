@@ -24,12 +24,21 @@ export function OrderHistoryList({
         <li key={order.id} className="border-border rounded-xs border p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <Link
-                href={`/order-success/${order.orderNumber}`}
-                className="text-sm font-medium hover:underline"
-              >
-                {order.orderNumber}
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/order-success/${order.orderNumber}`}
+                  className="text-sm font-medium hover:underline"
+                >
+                  {order.orderNumber}
+                </Link>
+                <Link
+                  href={`/invoice/${order.orderNumber}`}
+                  target="_blank"
+                  className="text-brand text-xs underline underline-offset-2"
+                >
+                  Invoice
+                </Link>
+              </div>
               <p className="text-muted-foreground text-xs">
                 Placed{" "}
                 {new Date(order.createdAt).toLocaleDateString("en-IN", { dateStyle: "medium" })} ·

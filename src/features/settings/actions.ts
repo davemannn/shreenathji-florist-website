@@ -8,7 +8,14 @@ import { storeSettingsFormSchema, type StoreSettingsFormValues } from "./validat
 export async function updateStoreSettingsAction(input: StoreSettingsFormValues) {
   await requireAdminCapability("settings:manage");
   const values = storeSettingsFormSchema.parse(input);
-  await updateStoreSettingsRepo(values);
+  await updateStoreSettingsRepo({
+    ...values,
+    gstin: values.gstin || null,
+    legalBusinessName: values.legalBusinessName || null,
+    registeredAddressLine: values.registeredAddressLine || null,
+    registeredCity: values.registeredCity || null,
+    registeredPincode: values.registeredPincode || null,
+  });
 
   revalidatePath("/admin/settings");
   revalidatePath("/cart");

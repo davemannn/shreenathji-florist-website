@@ -10,11 +10,18 @@ import {
 } from "@/server/repositories/category.repository";
 import { categoryFormSchema, type CategoryFormValues } from "./validations";
 
+// gstRate/hsnCode: undefined means "leave unchanged" to Prisma's update
+// input, which is wrong for a field the admin explicitly cleared — coerce
+// to null so clearing the rate/HSN in the form actually clears it in the DB.
+function toRepoInput(values: CategoryFormValues) {
+  return { ...values, gstRate: values.gstRate ?? null, hsnCode: values.hsnCode || null };
+}
+
 export async function createCategoryAction(input: CategoryFormValues) {
   await requireAdminCapability("categories:manage");
   const values = categoryFormSchema.parse(input);
 
-  const category = await createCategoryRepo(values);
+  const category = await createCategoryRepo(toRepoInput(values));
 
   revalidatePath("/admin/categories");
   revalidatePath("/shop");
@@ -25,7 +32,7 @@ export async function updateCategoryAction(id: string, input: CategoryFormValues
   await requireAdminCapability("categories:manage");
   const values = categoryFormSchema.parse(input);
 
-  await updateCategoryRepo(id, values);
+  await updateCategoryRepo(id, toRepoInput(values));
 
   revalidatePath("/admin/categories");
   revalidatePath(`/admin/categories/${id}`);

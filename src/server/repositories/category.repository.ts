@@ -51,6 +51,8 @@ export interface UpsertCategoryInput {
   imageCloudinaryId?: string;
   isOccasion: boolean;
   isFeatured: boolean;
+  gstRate?: number | null;
+  hsnCode?: string | null;
 }
 
 /**

@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FileText } from "lucide-react";
 import { requireAdminSession } from "@/server/auth/require-admin";
 import { getOrderDetail, getActiveDeliveryPersons } from "@/features/order/queries";
 import { OrderStatusBadge } from "@/features/order/components/order-status-badge";
@@ -7,6 +9,7 @@ import { OrderStatusActions } from "@/features/order/components/order-status-act
 import { DeliveryAssignmentSelect } from "@/features/order/components/delivery-assignment-select";
 import { OrderStatusHistoryList } from "@/features/order/components/order-status-history";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -40,7 +43,18 @@ export default async function AdminOrderDetailPage({ params }: PageProps<"/admin
             {order.customerName} ({order.customerEmail}) · Placed {formatDate(order.createdAt)}
           </p>
         </div>
-        <OrderStatusBadge status={order.status} className="h-6 px-3 text-sm" />
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={`/invoice/${order.orderNumber}`} target="_blank" />}
+          >
+            <FileText className="size-3.5" aria-hidden="true" />
+            View Invoice
+          </Button>
+          <OrderStatusBadge status={order.status} className="h-6 px-3 text-sm" />
+        </div>
       </div>
 
       <section className="border-border flex flex-col gap-3 rounded-xs border p-5">

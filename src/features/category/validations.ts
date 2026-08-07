@@ -11,6 +11,8 @@ export const categoryFormSchema = z.object({
   imageCloudinaryId: z.string().optional(),
   isOccasion: z.boolean(),
   isFeatured: z.boolean(),
+  gstRate: z.coerce.number().int().min(0).max(28).optional(),
+  hsnCode: z.string().optional(),
 });
 
 export type CategoryFormValues = z.output<typeof categoryFormSchema>;

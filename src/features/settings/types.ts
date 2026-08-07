@@ -11,4 +11,13 @@ export interface StoreSettings {
   midnightCutoffHour: number;
   expressCharge: number;
   midnightCharge: number;
+  /** Null until the business is GST-registered and this is set — see order.service.ts. */
+  gstin?: string;
+  legalBusinessName?: string;
+  registeredAddressLine?: string;
+  registeredCity?: string;
+  registeredState: string;
+  registeredPincode?: string;
+  defaultGstRate: number;
+  invoicePrefix: string;
 }

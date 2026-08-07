@@ -21,4 +21,7 @@ export interface AdminCategory {
   isFeatured: boolean;
   sortOrder: number;
   productCount: number;
+  /** GST% for products in this category — see lib/tax.ts's resolveProductTax. Only meaningful on Shop categories (isOccasion: false). */
+  gstRate?: number;
+  hsnCode?: string;
 }

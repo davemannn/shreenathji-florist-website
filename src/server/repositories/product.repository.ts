@@ -229,3 +229,21 @@ export async function updateProduct(id: string, input: UpsertProductInput) {
 export async function setProductActive(id: string, isActive: boolean) {
   return prisma.product.update({ where: { id }, data: { isActive } });
 }
+
+/**
+ * Category tax info (isOccasion/gstRate/hsnCode) for a batch of products —
+ * feeds lib/tax.ts's resolveProductTax at order-placement time. One query
+ * for the whole cart rather than one per line item.
+ */
+export async function findProductsTaxInfo(productIds: string[]) {
+  const rows = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    select: {
+      id: true,
+      categories: {
+        select: { category: { select: { isOccasion: true, gstRate: true, hsnCode: true } } },
+      },
+    },
+  });
+  return new Map(rows.map((row) => [row.id, row.categories.map((pc) => pc.category)]));
+}

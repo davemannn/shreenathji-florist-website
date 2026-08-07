@@ -7,8 +7,10 @@ import {
   incrementCouponUsage,
 } from "@/server/repositories/coupon.repository";
 import { findDeliverySlotById } from "@/server/repositories/delivery-slot.repository";
+import { findProductsTaxInfo } from "@/server/repositories/product.repository";
 import { getStoreSettings } from "@/features/settings/queries";
 import { effectiveSlotCharge, isSlotAvailable, toIsoDate } from "@/lib/delivery";
+import { isInterStateOrder, resolveProductTax, splitGst, splitInclusiveTax } from "@/lib/tax";
 
 export interface CartLineItemInput {
   productId: string;
@@ -131,16 +133,51 @@ export async function placeOrder(input: PlaceOrderInput) {
     throw new Error(totals.couponError);
   }
 
-  const orderItems: CreateOrderItemInput[] = input.items.map((item) => ({
-    productId: item.productId,
-    variantId: item.variantId,
-    productTitle: item.productTitle,
-    variantLabel: item.variantLabel,
-    imageUrl: item.imageUrl,
-    unitPrice: item.price,
-    quantity: item.quantity,
-    lineTotal: item.price * item.quantity,
-  }));
+  const settings = await getStoreSettings();
+  const isInterState = isInterStateOrder(input.deliveryState, settings.registeredState);
+  const taxInfoByProduct = await findProductsTaxInfo(input.items.map((item) => item.productId));
+
+  // A coupon discount reduces each line's taxable value proportionally, so
+  // the invoice's tax figures shrink consistently with what the customer
+  // actually paid rather than taxing value they got a discount on.
+  const discountRatio = subtotal > 0 ? totals.discount / subtotal : 0;
+
+  let orderTaxableValue = 0;
+  let orderTaxAmount = 0;
+
+  const orderItems: CreateOrderItemInput[] = input.items.map((item) => {
+    const categories = taxInfoByProduct.get(item.productId) ?? [];
+    const { gstRate, hsnCode } = resolveProductTax(categories, settings.defaultGstRate);
+    const lineTotal = item.price * item.quantity;
+    const discountedLineTotal = Math.round(lineTotal * (1 - discountRatio));
+    const { taxableValue, taxAmount } = splitInclusiveTax(discountedLineTotal, gstRate);
+    orderTaxableValue += taxableValue;
+    orderTaxAmount += taxAmount;
+
+    return {
+      productId: item.productId,
+      variantId: item.variantId,
+      productTitle: item.productTitle,
+      variantLabel: item.variantLabel,
+      imageUrl: item.imageUrl,
+      unitPrice: item.price,
+      quantity: item.quantity,
+      lineTotal,
+      gstRate,
+      hsnCode: hsnCode ?? undefined,
+      taxableValue,
+      taxAmount,
+    };
+  });
+
+  // Delivery charge is taxed too (at the storewide default rate) — its tax
+  // isn't attributed to any single line item, only to the order-level
+  // totals below.
+  const deliveryTax = splitInclusiveTax(totals.deliveryCharge, settings.defaultGstRate);
+  orderTaxableValue += deliveryTax.taxableValue;
+  orderTaxAmount += deliveryTax.taxAmount;
+
+  const { cgstAmount, sgstAmount, igstAmount } = splitGst(orderTaxAmount, isInterState);
 
   const order = await createOrderRow({
     orderNumber: generateOrderNumber(),
@@ -162,6 +199,14 @@ export async function placeOrder(input: PlaceOrderInput) {
     messageCard: input.messageCard,
     giftWrap: input.giftWrap,
     couponId: totals.couponId,
+    sellerGstin: settings.gstin ?? undefined,
+    sellerState: settings.registeredState,
+    isInterState,
+    taxableValue: orderTaxableValue,
+    cgstAmount,
+    sgstAmount,
+    igstAmount,
+    totalTax: orderTaxAmount,
     items: orderItems,
   });
 

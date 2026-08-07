@@ -16,5 +16,13 @@ export const getStoreSettings = cache(async (): Promise<StoreSettings> => {
     midnightCutoffHour: row.midnightCutoffHour,
     expressCharge: row.expressCharge,
     midnightCharge: row.midnightCharge,
+    gstin: row.gstin ?? undefined,
+    legalBusinessName: row.legalBusinessName ?? undefined,
+    registeredAddressLine: row.registeredAddressLine ?? undefined,
+    registeredCity: row.registeredCity ?? undefined,
+    registeredState: row.registeredState,
+    registeredPincode: row.registeredPincode ?? undefined,
+    defaultGstRate: row.defaultGstRate,
+    invoicePrefix: row.invoicePrefix,
   };
 });

@@ -93,6 +93,8 @@ export async function listCategoriesAdmin(
     isFeatured: category.isFeatured,
     sortOrder: category.sortOrder,
     productCount: category._count.products,
+    gstRate: category.gstRate ?? undefined,
+    hsnCode: category.hsnCode ?? undefined,
   }));
 
   const factor = dir === "desc" ? -1 : 1;
@@ -119,5 +121,7 @@ export async function getCategoryForEdit(id: string): Promise<AdminCategory | nu
     isFeatured: category.isFeatured,
     sortOrder: category.sortOrder,
     productCount: await countProductsInCategory(category.id),
+    gstRate: category.gstRate ?? undefined,
+    hsnCode: category.hsnCode ?? undefined,
   };
 }

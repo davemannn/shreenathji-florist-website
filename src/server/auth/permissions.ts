@@ -39,7 +39,8 @@ export type Capability =
   | "team:manage:junior"
   | "team:manage:all"
   | "analytics:view:operational"
-  | "analytics:view:financial";
+  | "analytics:view:financial"
+  | "reports:view";
 
 const ROLE_CAPABILITIES: Record<AdminRole, ReadonlySet<Capability>> = {
   super_admin: new Set<Capability>([
@@ -63,6 +64,7 @@ const ROLE_CAPABILITIES: Record<AdminRole, ReadonlySet<Capability>> = {
     "team:manage:all",
     "analytics:view:operational",
     "analytics:view:financial",
+    "reports:view",
   ]),
   admin: new Set<Capability>([
     "products:manage",
@@ -83,6 +85,7 @@ const ROLE_CAPABILITIES: Record<AdminRole, ReadonlySet<Capability>> = {
     "team:manage:junior",
     "analytics:view:operational",
     "analytics:view:financial",
+    "reports:view",
   ]),
   store_manager: new Set<Capability>([
     "products:manage",

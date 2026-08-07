@@ -12,6 +12,7 @@ import {
   Users,
   UserCog,
   Settings,
+  FileBarChart,
 } from "lucide-react";
 import type { Capability } from "@/server/auth/permissions";
 
@@ -51,6 +52,7 @@ export const adminNav: AdminNavItem[] = [
     capability: "delivery_slots:manage",
   },
   { label: "Customers", href: "/admin/customers", icon: Users, capability: "customers:view" },
+  { label: "Reports", href: "/admin/reports", icon: FileBarChart, capability: "reports:view" },
   { label: "Team", href: "/admin/team", icon: UserCog, capability: "team:manage:junior" },
   { label: "Settings", href: "/admin/settings", icon: Settings, capability: "settings:view" },
 ];
