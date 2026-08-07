@@ -9,6 +9,9 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+// Pure logic, no server-only deps despite living under src/server/ — safe to
+// import client-side (see the comment on isAdminRole itself).
+import { isAdminRole } from "@/server/auth/permissions";
 import { signInSchema, type SignInValues } from "../validations";
 
 export function SignInForm() {
@@ -26,12 +29,20 @@ export function SignInForm() {
   });
 
   async function onSubmit(values: SignInValues) {
-    const { error } = await authClient.signIn.email(values);
+    const { data, error } = await authClient.signIn.email(values);
     if (error) {
       toast.error(error.message ?? "Couldn't sign in. Check your email and password.");
       return;
     }
-    router.push(redirectTo);
+
+    // No explicit redirectTo (e.g. proxy.ts sending someone back to the admin
+    // page they tried to reach) means this was a plain /sign-in visit — send
+    // staff straight to the dashboard instead of the customer homepage.
+    const hasExplicitRedirect = searchParams.get("redirectTo");
+    const destination =
+      !hasExplicitRedirect && isAdminRole(data?.user.role) ? "/admin" : redirectTo;
+
+    router.push(destination);
     router.refresh();
   }
 

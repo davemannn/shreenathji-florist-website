@@ -90,12 +90,18 @@ function DropdownMenuCheckboxItem({
 }
 
 function DropdownMenuLabel({ className, ...props }: MenuPrimitive.GroupLabel.Props) {
+  // Unlike Radix, Base UI's Menu.GroupLabel throws at render time ("MenuGroupContext is
+  // missing") unless it's inside a Menu.Group — even for a single standalone label. Wrapping
+  // it here means callers can use <DropdownMenuLabel> on its own, matching how every other
+  // dropdown-menu implementation (including shadcn's Radix-based one) actually behaves.
   return (
-    <MenuPrimitive.GroupLabel
-      data-slot="dropdown-menu-label"
-      className={cn("text-muted-foreground px-2 py-1.5 text-xs font-medium", className)}
-      {...props}
-    />
+    <MenuPrimitive.Group>
+      <MenuPrimitive.GroupLabel
+        data-slot="dropdown-menu-label"
+        className={cn("text-muted-foreground px-2 py-1.5 text-xs font-medium", className)}
+        {...props}
+      />
+    </MenuPrimitive.Group>
   );
 }
 
