@@ -1,4 +1,8 @@
-import type { GoogleReview, GoogleReviewAggregate, Testimonial } from "./types";
+import {
+  listReviewsAdmin as listReviewsAdminRepo,
+  type ListReviewsAdminParams,
+} from "@/server/repositories/review.repository";
+import type { AdminReview, GoogleReview, GoogleReviewAggregate, Testimonial } from "./types";
 
 // Placeholder content — clearly generic, not written to resemble specific
 // real customers. Replace with real testimonials / real Google Reviews API
@@ -66,4 +70,37 @@ export async function getGoogleReviewAggregate(): Promise<GoogleReviewAggregate>
 
 export async function getGoogleReviews(): Promise<GoogleReview[]> {
   return GOOGLE_REVIEWS;
+}
+
+// ---------------------------------------------------------------------------
+// Admin panel — review moderation (Phase 3).
+// ---------------------------------------------------------------------------
+
+export interface AdminReviewListResult {
+  reviews: AdminReview[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function listReviewsAdmin(
+  params: ListReviewsAdminParams = {},
+): Promise<AdminReviewListResult> {
+  const { reviews, total, page, pageSize } = await listReviewsAdminRepo(params);
+  return {
+    reviews: reviews.map((review) => ({
+      id: review.id,
+      authorName: review.authorName,
+      rating: review.rating,
+      comment: review.comment,
+      isApproved: review.isApproved,
+      createdAt: review.createdAt.toISOString(),
+      productId: review.productId,
+      productTitle: review.product.title,
+      productSlug: review.product.slug,
+    })),
+    total,
+    page,
+    pageSize,
+  };
 }

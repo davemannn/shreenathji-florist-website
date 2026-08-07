@@ -135,15 +135,20 @@ enum DeliverySlotType {
 }
 
 model Category {
-  id          String            @id @default(cuid())
-  name        String
-  slug        String            @unique
-  description String?
-  imageUrl    String?
-  isOccasion  Boolean           @default(false)
-  isFeatured  Boolean           @default(false)
-  sortOrder   Int               @default(0)
-  products    ProductCategory[]
+  id                String            @id @default(cuid())
+  name              String
+  slug              String            @unique
+  description       String?
+  imageUrl          String?
+  // Set only for admin-uploaded Cloudinary images (Phase 3+) — the seeded
+  // Pexels stock photos have no Cloudinary asset to clean up, so this stays
+  // null for those. Lets the admin action call cloudinary.uploader.destroy()
+  // on replace/remove instead of leaving orphaned assets.
+  imageCloudinaryId String?
+  isOccasion        Boolean           @default(false)
+  isFeatured        Boolean           @default(false)
+  sortOrder         Int               @default(0)
+  products          ProductCategory[]
 }
 
 model Product {
@@ -176,12 +181,13 @@ model ProductCategory {
 }
 
 model ProductImage {
-  id        String  @id @default(cuid())
-  productId String
-  url       String
-  alt       String
-  sortOrder Int     @default(0)
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id           String  @id @default(cuid())
+  productId    String
+  url          String
+  alt          String
+  sortOrder    Int     @default(0)
+  cloudinaryId String?
+  product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
 }
@@ -343,19 +349,20 @@ model Review {
 // ---------------------------------------------------------------------------
 
 model BlogPost {
-  id              String   @id @default(cuid())
-  slug            String   @unique
-  title           String
-  excerpt         String   @db.Text
-  content         String   @db.Text
-  coverImageUrl   String?
-  coverImageAlt   String?
-  authorName      String
-  readTimeMinutes Int      @default(4)
-  isPublished     Boolean  @default(true)
-  publishedAt     DateTime @default(now())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  slug                   String   @unique
+  title                  String
+  excerpt                String   @db.Text
+  content                String   @db.Text
+  coverImageUrl          String?
+  coverImageAlt          String?
+  coverImageCloudinaryId String?
+  authorName             String
+  readTimeMinutes        Int      @default(4)
+  isPublished            Boolean  @default(true)
+  publishedAt            DateTime @default(now())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   @@index([isPublished, publishedAt])
 }

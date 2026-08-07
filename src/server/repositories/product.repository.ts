@@ -116,3 +116,114 @@ export async function findRelatedProducts(productId: string, categorySlugs: stri
     take: limit,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Admin panel — catalog management (Phase 3). Unlike the storefront queries
+// above, these deliberately don't filter isActive=true — admin needs to see
+// and manage deactivated products too.
+// ---------------------------------------------------------------------------
+
+export interface ListProductsAdminParams {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function listProductsAdmin(params: ListProductsAdminParams = {}) {
+  const { search, page = 1, pageSize = 20 } = params;
+
+  const where = search
+    ? { OR: [{ title: { contains: search } }, { slug: { contains: search } }] }
+    : {};
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: PRODUCT_INCLUDE,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  return { products, total, page, pageSize };
+}
+
+export async function findProductByIdAdmin(id: string) {
+  return prisma.product.findUnique({ where: { id }, include: PRODUCT_INCLUDE });
+}
+
+export interface ProductVariantInput {
+  label: string;
+  price: number;
+  compareAtPrice?: number;
+  stock: number;
+  isDefault: boolean;
+}
+
+export interface ProductImageInput {
+  url: string;
+  alt: string;
+  cloudinaryId?: string;
+}
+
+export interface UpsertProductInput {
+  slug: string;
+  title: string;
+  description: string;
+  badge?: "SALE" | "NEW" | "BESTSELLER" | null;
+  isActive: boolean;
+  isBestSeller: boolean;
+  isFeatured: boolean;
+  categoryIds: string[];
+  variants: ProductVariantInput[];
+  images: ProductImageInput[];
+}
+
+/** Nested create — a new Product plus its categories/variants/images in one atomic write. */
+export async function createProduct(input: UpsertProductInput) {
+  const { categoryIds, variants, images, ...productData } = input;
+
+  return prisma.product.create({
+    data: {
+      ...productData,
+      categories: { create: categoryIds.map((categoryId) => ({ categoryId })) },
+      variants: { create: variants.map((v, sortOrder) => ({ ...v, sortOrder })) },
+      images: { create: images.map((img, sortOrder) => ({ ...img, sortOrder })) },
+    },
+    include: PRODUCT_INCLUDE,
+  });
+}
+
+/**
+ * Variants/images/categories are fully replaced (delete + recreate) rather
+ * than diffed — simpler, and safe: OrderItem.variantId/productId both use
+ * onDelete: SetNull, so existing order history (which snapshots
+ * productTitle/variantLabel/etc. already) is unaffected by a variant being
+ * deleted out from under it. Same pattern the seed script already uses.
+ */
+export async function updateProduct(id: string, input: UpsertProductInput) {
+  const { categoryIds, variants, images, ...productData } = input;
+
+  return prisma.$transaction(async (tx) => {
+    await tx.productCategory.deleteMany({ where: { productId: id } });
+    await tx.productVariant.deleteMany({ where: { productId: id } });
+    await tx.productImage.deleteMany({ where: { productId: id } });
+
+    return tx.product.update({
+      where: { id },
+      data: {
+        ...productData,
+        categories: { create: categoryIds.map((categoryId) => ({ categoryId })) },
+        variants: { create: variants.map((v, sortOrder) => ({ ...v, sortOrder })) },
+        images: { create: images.map((img, sortOrder) => ({ ...img, sortOrder })) },
+      },
+      include: PRODUCT_INCLUDE,
+    });
+  });
+}
+
+export async function setProductActive(id: string, isActive: boolean) {
+  return prisma.product.update({ where: { id }, data: { isActive } });
+}

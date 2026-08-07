@@ -5,3 +5,20 @@ export interface Category {
   imageAlt: string;
   imageUrl?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Admin panel — catalog management (Phase 3).
+// ---------------------------------------------------------------------------
+
+export interface AdminCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  imageUrl?: string;
+  imageCloudinaryId?: string;
+  isOccasion: boolean;
+  isFeatured: boolean;
+  sortOrder: number;
+  productCount: number;
+}

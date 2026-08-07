@@ -1,19 +1,23 @@
 import {
   findBestSellers,
+  findProductByIdAdmin,
   findProductBySlug,
   findRelatedProducts,
   listProducts as listProductsRepo,
+  listProductsAdmin as listProductsAdminRepo,
   searchProducts as searchProductsRepo,
+  type ListProductsAdminParams,
   type ListProductsParams,
   type SearchProductsParams,
 } from "@/server/repositories/product.repository";
-import type { Product, ProductDetail } from "./types";
+import type { AdminProductDetail, AdminProductListItem, Product, ProductDetail } from "./types";
 
 // Prisma's generated types are structurally wide enough that we don't need
 // to import them explicitly here — these mapper functions just need
 // whatever shape the repository's `include` actually returns.
 type ProductWithRelations = NonNullable<Awaited<ReturnType<typeof findProductBySlug>>>;
 type ProductListRow = Awaited<ReturnType<typeof findBestSellers>>[number];
+type ProductAdminRow = NonNullable<Awaited<ReturnType<typeof findProductByIdAdmin>>>;
 
 function defaultVariant<T extends ProductListRow>(product: T) {
   return product.variants.find((v) => v.isDefault) ?? product.variants[0];
@@ -112,4 +116,71 @@ export async function getRelatedProducts(
 ): Promise<Product[]> {
   const products = await findRelatedProducts(productId, categorySlugs, limit);
   return products.map(toProductCard);
+}
+
+// ---------------------------------------------------------------------------
+// Admin panel — catalog management (Phase 3).
+// ---------------------------------------------------------------------------
+
+function toAdminListItem(product: ProductListRow): AdminProductListItem {
+  const primaryImage = product.images[0];
+  const prices = product.variants.map((v) => v.price);
+  return {
+    id: product.id,
+    slug: product.slug,
+    title: product.title,
+    isActive: product.isActive,
+    isBestSeller: product.isBestSeller,
+    isFeatured: product.isFeatured,
+    badge: product.badge ?? undefined,
+    imageUrl: primaryImage?.url,
+    minPrice: prices.length > 0 ? Math.min(...prices) : 0,
+    totalStock: product.variants.reduce((sum, v) => sum + v.stock, 0),
+    categoryNames: product.categories.map((pc) => pc.category.name),
+  };
+}
+
+function toAdminDetail(product: ProductAdminRow): AdminProductDetail {
+  return {
+    id: product.id,
+    slug: product.slug,
+    title: product.title,
+    description: product.description,
+    badge: product.badge ?? undefined,
+    isActive: product.isActive,
+    isBestSeller: product.isBestSeller,
+    isFeatured: product.isFeatured,
+    categoryIds: product.categories.map((pc) => pc.categoryId),
+    variants: product.variants.map((v) => ({
+      label: v.label,
+      price: v.price,
+      compareAtPrice: v.compareAtPrice ?? undefined,
+      stock: v.stock,
+      isDefault: v.isDefault,
+    })),
+    images: product.images.map((img) => ({
+      url: img.url,
+      alt: img.alt,
+      cloudinaryId: img.cloudinaryId ?? undefined,
+    })),
+  };
+}
+
+export interface AdminProductListResult {
+  products: AdminProductListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function listProductsAdmin(
+  params: ListProductsAdminParams = {},
+): Promise<AdminProductListResult> {
+  const { products, total, page, pageSize } = await listProductsAdminRepo(params);
+  return { products: products.map(toAdminListItem), total, page, pageSize };
+}
+
+export async function getProductForEdit(id: string): Promise<AdminProductDetail | null> {
+  const product = await findProductByIdAdmin(id);
+  return product ? toAdminDetail(product) : null;
 }

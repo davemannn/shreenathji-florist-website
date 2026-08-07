@@ -44,3 +44,54 @@ export interface ProductDetail extends Product {
   reviews: ProductReview[];
   categorySlugs: string[];
 }
+
+// ---------------------------------------------------------------------------
+// Admin panel — catalog management (Phase 3). Deliberately separate shapes
+// from the storefront types above: admin needs every raw editable field
+// (per-variant stock, isActive, etc.), not the "default variant" projection
+// the storefront card/PDP types are built around.
+// ---------------------------------------------------------------------------
+
+export type ProductBadgeValue = "SALE" | "NEW" | "BESTSELLER";
+
+export interface AdminProductVariantInput {
+  label: string;
+  price: number;
+  compareAtPrice?: number;
+  stock: number;
+  isDefault: boolean;
+}
+
+export interface AdminProductImageInput {
+  url: string;
+  alt: string;
+  cloudinaryId?: string;
+}
+
+export interface AdminProductListItem {
+  id: string;
+  slug: string;
+  title: string;
+  isActive: boolean;
+  isBestSeller: boolean;
+  isFeatured: boolean;
+  badge?: ProductBadgeValue;
+  imageUrl?: string;
+  minPrice: number;
+  totalStock: number;
+  categoryNames: string[];
+}
+
+export interface AdminProductDetail {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  badge?: ProductBadgeValue;
+  isActive: boolean;
+  isBestSeller: boolean;
+  isFeatured: boolean;
+  categoryIds: string[];
+  variants: AdminProductVariantInput[];
+  images: AdminProductImageInput[];
+}

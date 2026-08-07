@@ -1,9 +1,11 @@
 import {
+  countProductsInCategory,
+  findCategoryById,
   findCategoryBySlug,
   listCategories as listCategoriesRepo,
   listFeaturedCategories,
 } from "@/server/repositories/category.repository";
-import type { Category } from "./types";
+import type { AdminCategory, Category } from "./types";
 
 type CategoryRow = Awaited<ReturnType<typeof listFeaturedCategories>>[number];
 
@@ -40,5 +42,45 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryWithMeta 
     ...toCategory(category),
     description: category.description ?? undefined,
     isOccasion: category.isOccasion,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Admin panel — catalog management (Phase 3).
+// ---------------------------------------------------------------------------
+
+export async function listCategoriesAdmin(): Promise<AdminCategory[]> {
+  const categories = await listCategoriesRepo();
+  return Promise.all(
+    categories.map(async (category) => ({
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      description: category.description ?? undefined,
+      imageUrl: category.imageUrl ?? undefined,
+      imageCloudinaryId: category.imageCloudinaryId ?? undefined,
+      isOccasion: category.isOccasion,
+      isFeatured: category.isFeatured,
+      sortOrder: category.sortOrder,
+      productCount: await countProductsInCategory(category.id),
+    })),
+  );
+}
+
+export async function getCategoryForEdit(id: string): Promise<AdminCategory | null> {
+  const category = await findCategoryById(id);
+  if (!category) return null;
+
+  return {
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    description: category.description ?? undefined,
+    imageUrl: category.imageUrl ?? undefined,
+    imageCloudinaryId: category.imageCloudinaryId ?? undefined,
+    isOccasion: category.isOccasion,
+    isFeatured: category.isFeatured,
+    sortOrder: category.sortOrder,
+    productCount: await countProductsInCategory(category.id),
   };
 }
