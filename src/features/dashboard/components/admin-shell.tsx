@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, LogOut, User as UserIcon } from "lucide-react";
+import { Menu, LogOut, User as UserIcon, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
 import type { AdminRole } from "@/server/auth/permissions";
+import { useOrderNotifications } from "../hooks/use-order-notifications";
 import { AdminNavList } from "./admin-nav-list";
 
 const ROLE_LABELS: Record<AdminRole, string> = {
@@ -35,6 +36,8 @@ interface AdminShellProps {
 export function AdminShell({ role, name, email, children }: AdminShellProps) {
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { count } = useOrderNotifications();
+  const notificationsHref = role === "delivery_guy" ? "/admin/my-deliveries" : "/admin/orders";
 
   async function handleSignOut() {
     await authClient.signOut();
@@ -83,7 +86,22 @@ export function AdminShell({ role, name, email, children }: AdminShellProps) {
             <Menu aria-hidden="true" />
           </Button>
 
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`Notifications, ${count} pending`}
+              className="relative"
+              nativeButton={false}
+              render={<Link href={notificationsHref} />}
+            >
+              <Bell aria-hidden="true" />
+              {count > 0 ? (
+                <span className="bg-brand text-brand-foreground absolute top-1 right-1 flex size-4 items-center justify-center rounded-full text-[10px] font-medium">
+                  {count > 9 ? "9+" : count}
+                </span>
+              ) : null}
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-2" />}>
                 <UserIcon className="size-4" aria-hidden="true" />

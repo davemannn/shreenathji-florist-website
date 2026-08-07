@@ -19,25 +19,30 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model User {
-  id            String    @id @default(cuid())
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  role          String?
-  banned        Boolean?  @default(false)
-  banReason     String?
-  banExpires    DateTime?
+  id                  String     @id @default(cuid())
+  name                String
+  email               String     @unique
+  emailVerified       Boolean    @default(false)
+  image               String?
+  role                String?
+  banned              Boolean?   @default(false)
+  banReason           String?
+  banExpires          DateTime?
+  // Staff contact info (delivery_guy in particular — a store manager may
+  // need to call them). Nullable, harmless for regular customers too.
+  phone               String?
   // Starts at 0 — no top-up/redeem flow yet, this is a real (not fake)
   // field the account dashboard reads, ready for a future wallet feature.
-  walletBalance Int       @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  addresses     Address[]
-  orders        Order[]
-  giftCards     GiftCard[]
+  walletBalance       Int        @default(0)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  sessions            Session[]
+  accounts            Account[]
+  addresses           Address[]
+  orders              Order[]
+  giftCards           GiftCard[]
+  // Orders assigned to this user when they're staff with the delivery_guy role.
+  deliveryAssignments Order[]    @relation("DeliveryAssignments")
 }
 
 model Session {
@@ -240,38 +245,63 @@ model Coupon {
 }
 
 model Order {
-  id                String        @id @default(cuid())
-  orderNumber       String        @unique
-  userId            String
-  status            OrderStatus   @default(PENDING)
-  subtotal          Int
-  discount          Int           @default(0)
-  deliveryCharge    Int           @default(0)
-  total             Int
-  paymentMethod     PaymentMethod
-  paymentStatus     PaymentStatus @default(PENDING)
-  razorpayOrderId   String?
-  razorpayPaymentId String?
-  recipientName     String
-  recipientPhone    String
-  deliveryLine1     String
-  deliveryLine2     String?
-  deliveryCity      String
-  deliveryState     String
-  deliveryPincode   String
-  deliveryDate      DateTime
-  deliverySlotId    String?
-  messageCard       String?
-  giftWrap          Boolean       @default(false)
-  couponId          String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  user              User          @relation(fields: [userId], references: [id])
-  deliverySlot      DeliverySlot? @relation(fields: [deliverySlotId], references: [id])
-  coupon            Coupon?       @relation(fields: [couponId], references: [id])
-  items             OrderItem[]
+  id                       String               @id @default(cuid())
+  orderNumber              String               @unique
+  userId                   String
+  status                   OrderStatus          @default(PENDING)
+  subtotal                 Int
+  discount                 Int                  @default(0)
+  deliveryCharge           Int                  @default(0)
+  total                    Int
+  paymentMethod            PaymentMethod
+  paymentStatus            PaymentStatus        @default(PENDING)
+  razorpayOrderId          String?
+  razorpayPaymentId        String?
+  recipientName            String
+  recipientPhone           String
+  deliveryLine1            String
+  deliveryLine2            String?
+  deliveryCity             String
+  deliveryState            String
+  deliveryPincode          String
+  deliveryDate             DateTime
+  deliverySlotId           String?
+  messageCard              String?
+  giftWrap                 Boolean              @default(false)
+  couponId                 String?
+  // Admin panel — order management (Phase 2).
+  assignedDeliveryPersonId String?
+  deliveredAt              DateTime?
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+  user                     User                 @relation(fields: [userId], references: [id])
+  deliverySlot             DeliverySlot?        @relation(fields: [deliverySlotId], references: [id])
+  coupon                   Coupon?              @relation(fields: [couponId], references: [id])
+  assignedDeliveryPerson   User?                @relation("DeliveryAssignments", fields: [assignedDeliveryPersonId], references: [id])
+  items                    OrderItem[]
+  statusHistory            OrderStatusHistory[]
 
   @@index([userId])
+  @@index([assignedDeliveryPersonId])
+}
+
+// Audit trail for order status changes — who changed what, when. changedBy*
+// fields are a snapshot (name/role at the time), not a hard FK to User, so
+// the log stays intact even if a staff account is later deleted — matches
+// the same snapshot pattern OrderItem already uses for productTitle etc.
+model OrderStatusHistory {
+  id              String       @id @default(cuid())
+  orderId         String
+  fromStatus      OrderStatus?
+  toStatus        OrderStatus
+  changedByUserId String
+  changedByName   String
+  changedByRole   String
+  note            String?
+  createdAt       DateTime     @default(now())
+  order           Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
 }
 
 model OrderItem {
@@ -313,19 +343,19 @@ model Review {
 // ---------------------------------------------------------------------------
 
 model BlogPost {
-  id              String    @id @default(cuid())
-  slug            String    @unique
+  id              String   @id @default(cuid())
+  slug            String   @unique
   title           String
-  excerpt         String    @db.Text
-  content         String    @db.Text
+  excerpt         String   @db.Text
+  content         String   @db.Text
   coverImageUrl   String?
   coverImageAlt   String?
   authorName      String
-  readTimeMinutes Int       @default(4)
-  isPublished     Boolean   @default(true)
-  publishedAt     DateTime  @default(now())
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  readTimeMinutes Int      @default(4)
+  isPublished     Boolean  @default(true)
+  publishedAt     DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([isPublished, publishedAt])
 }

@@ -27,13 +27,25 @@ export interface AdminSession {
   role: AdminRole;
 }
 
+function hasAnyCapability(role: AdminRole, capability: Capability | Capability[]): boolean {
+  const required = Array.isArray(capability) ? capability : [capability];
+  return required.some((c) => can(role, c));
+}
+
 /**
  * For Server Components (pages/layouts). Redirects to sign-in if not
  * authenticated as staff at all; redirects to /admin (a safe landing page)
  * if authenticated but missing the specific capability requested — that's
  * a permission gap, not an auth gap, so sign-in would be the wrong target.
+ *
+ * `capability` accepts an array for "any of these" checks — e.g. an order
+ * page is reachable by orders:view:all (staff) OR orders:view:assigned
+ * (delivery_guy), two different roles satisfying the same page for
+ * different reasons.
  */
-export async function requireAdminSession(capability?: Capability): Promise<AdminSession> {
+export async function requireAdminSession(
+  capability?: Capability | Capability[],
+): Promise<AdminSession> {
   const session = await getSession();
 
   if (!session || !isAdminRole(session.user.role)) {
@@ -42,7 +54,7 @@ export async function requireAdminSession(capability?: Capability): Promise<Admi
 
   const role = session.user.role;
 
-  if (capability && !can(role, capability)) {
+  if (capability && !hasAnyCapability(role, capability)) {
     redirect(defaultAdminLandingFor(role));
   }
 
@@ -54,7 +66,9 @@ export async function requireAdminSession(capability?: Capability): Promise<Admi
  * mutation, not rendering a page, so there's nowhere to redirect *to*; the
  * caller's try/catch + toast surfaces this like any other action error).
  */
-export async function requireAdminCapability(capability: Capability): Promise<AdminSession> {
+export async function requireAdminCapability(
+  capability: Capability | Capability[],
+): Promise<AdminSession> {
   const session = await getSession();
 
   if (!session || !isAdminRole(session.user.role)) {
@@ -63,7 +77,7 @@ export async function requireAdminCapability(capability: Capability): Promise<Ad
 
   const role = session.user.role;
 
-  if (!can(role, capability)) {
+  if (!hasAnyCapability(role, capability)) {
     throw new Error("You don't have permission to do this.");
   }
 
