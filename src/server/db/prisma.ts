@@ -7,9 +7,15 @@ import { PrismaClient } from "@/generated/prisma/client";
  * database directly without one).
  *
  * Next.js hot-reloads modules in dev, which would otherwise create a new
- * PrismaClient (and a new connection pool) on every edit. Caching the
- * instance on `globalThis` in non-production avoids exhausting the
- * MySQL/MariaDB connection limit during local development.
+ * PrismaClient (and a new connection pool) on every edit — caching on
+ * `globalThis` avoids that. Cached in every environment, not just dev:
+ * the "only cache outside production" pattern seen in a lot of Prisma
+ * examples assumes a serverless deploy target where each invocation gets
+ * a fresh module scope anyway (so caching there is a no-op, not a
+ * requirement). On a persistent long-running `next start` process — which
+ * is what this actually runs as — skipping the cache in production would
+ * mean any re-evaluation of this module creates a whole new client and
+ * connection pool without anything telling us.
  *
  * connectionLimit is set explicitly (small) rather than left at the
  * mariadb driver's default of 10 — Next.js's production server runs a
@@ -48,7 +54,4 @@ function createPrismaClient() {
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;

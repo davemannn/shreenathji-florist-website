@@ -16,9 +16,12 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
+  const tag = `[startup-diagnostic pid=${process.pid}]`;
+  console.log(`${tag} register() called.`);
+
   const url = process.env.DATABASE_URL;
   if (!url) {
-    console.log("[startup-diagnostic] DATABASE_URL is NOT set in this environment.");
+    console.log(`${tag} DATABASE_URL is NOT set in this environment.`);
     return;
   }
 
@@ -30,14 +33,14 @@ export async function register() {
     host = parsed.hostname;
     port = parsed.port ? Number(parsed.port) : 3306;
     console.log(
-      `[startup-diagnostic] DATABASE_URL is set (raw length=${url.length}). ` +
+      `${tag} DATABASE_URL is set (raw length=${url.length}). ` +
         `Parsed -> protocol=${parsed.protocol} host=${parsed.hostname} port=${parsed.port || "(default)"} ` +
         `database=${parsed.pathname.replace(/^\//, "")} username=${parsed.username ? `"${parsed.username}"` : "(empty)"} ` +
         `password=${parsed.password ? `(set, length=${parsed.password.length})` : "(empty)"}`,
     );
   } catch (error) {
     console.log(
-      `[startup-diagnostic] DATABASE_URL is set (raw length=${url.length}) but failed to parse as a URL: ${
+      `${tag} DATABASE_URL is set (raw length=${url.length}) but failed to parse as a URL: ${
         error instanceof Error ? error.message : String(error)
       }`,
     );
@@ -51,22 +54,18 @@ export async function register() {
       const start = Date.now();
       const socket = connect({ host: targetHost, port: targetPort, timeout: 5000 });
       socket.on("connect", () => {
-        console.log(
-          `[startup-diagnostic] TCP probe ${label} -> SUCCESS in ${Date.now() - start}ms`,
-        );
+        console.log(`${tag} TCP probe ${label} -> SUCCESS in ${Date.now() - start}ms`);
         socket.end();
         resolve();
       });
       socket.on("timeout", () => {
-        console.log(
-          `[startup-diagnostic] TCP probe ${label} -> TIMEOUT after ${Date.now() - start}ms`,
-        );
+        console.log(`${tag} TCP probe ${label} -> TIMEOUT after ${Date.now() - start}ms`);
         socket.destroy();
         resolve();
       });
       socket.on("error", (err) => {
         console.log(
-          `[startup-diagnostic] TCP probe ${label} -> ERROR after ${Date.now() - start}ms: ${err.message}`,
+          `${tag} TCP probe ${label} -> ERROR after ${Date.now() - start}ms: ${err.message}`,
         );
         resolve();
       });
@@ -75,4 +74,5 @@ export async function register() {
 
   await probe(`db (${host}:${port})`, host, port);
   await probe("control (api.github.com:443)", "api.github.com", 443);
+  console.log(`${tag} done.`);
 }
