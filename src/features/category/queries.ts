@@ -3,8 +3,11 @@ import {
   findCategoryById,
   findCategoryBySlug,
   listCategories as listCategoriesRepo,
+  listCategoriesAdmin as listCategoriesAdminRepo,
   listFeaturedCategories,
+  type ListCategoriesAdminParams,
 } from "@/server/repositories/category.repository";
+import type { NavCategoryGroups } from "@/config/navigation";
 import type { AdminCategory, Category } from "./types";
 
 type CategoryRow = Awaited<ReturnType<typeof listFeaturedCategories>>[number];
@@ -29,6 +32,19 @@ export async function listAllCategories(): Promise<Category[]> {
   return categories.map(toCategory);
 }
 
+/** Feeds the header's "Shop"/"Occasions" dropdown children — see buildMainNav. */
+export async function getNavCategoryGroups(): Promise<NavCategoryGroups> {
+  const categories = await listCategoriesRepo();
+  const toNavItem = (category: CategoryRow) => ({
+    label: category.name,
+    href: `/shop/${category.slug}`,
+  });
+  return {
+    shop: categories.filter((c) => !c.isOccasion).map(toNavItem),
+    occasions: categories.filter((c) => c.isOccasion).map(toNavItem),
+  };
+}
+
 export interface CategoryWithMeta extends Category {
   description?: string;
   isOccasion: boolean;
@@ -49,22 +65,43 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryWithMeta 
 // Admin panel — catalog management (Phase 3).
 // ---------------------------------------------------------------------------
 
-export async function listCategoriesAdmin(): Promise<AdminCategory[]> {
-  const categories = await listCategoriesRepo();
-  return Promise.all(
-    categories.map(async (category) => ({
-      id: category.id,
-      name: category.name,
-      slug: category.slug,
-      description: category.description ?? undefined,
-      imageUrl: category.imageUrl ?? undefined,
-      imageCloudinaryId: category.imageCloudinaryId ?? undefined,
-      isOccasion: category.isOccasion,
-      isFeatured: category.isFeatured,
-      sortOrder: category.sortOrder,
-      productCount: await countProductsInCategory(category.id),
-    })),
-  );
+export type AdminCategorySort = "name" | "products" | "flags";
+
+export interface ListCategoriesAdminQueryParams extends ListCategoriesAdminParams {
+  sort?: AdminCategorySort;
+  dir?: "asc" | "desc";
+}
+
+/**
+ * Sorted in the application layer, same reasoning as the product admin list
+ * (see product/queries.ts) — this is a single florist's catalog (a handful
+ * of categories), not worth a second DB round trip per sort key.
+ */
+export async function listCategoriesAdmin(
+  params: ListCategoriesAdminQueryParams = {},
+): Promise<AdminCategory[]> {
+  const { sort, dir = "asc", ...repoParams } = params;
+  const categories = await listCategoriesAdminRepo(repoParams);
+  const mapped = categories.map((category) => ({
+    id: category.id,
+    name: category.name,
+    slug: category.slug,
+    description: category.description ?? undefined,
+    imageUrl: category.imageUrl ?? undefined,
+    imageCloudinaryId: category.imageCloudinaryId ?? undefined,
+    isOccasion: category.isOccasion,
+    isFeatured: category.isFeatured,
+    sortOrder: category.sortOrder,
+    productCount: category._count.products,
+  }));
+
+  const factor = dir === "desc" ? -1 : 1;
+  if (sort === "name") mapped.sort((a, b) => factor * a.name.localeCompare(b.name));
+  if (sort === "products") mapped.sort((a, b) => factor * (a.productCount - b.productCount));
+  if (sort === "flags")
+    mapped.sort((a, b) => factor * (Number(a.isFeatured) - Number(b.isFeatured)));
+
+  return mapped;
 }
 
 export async function getCategoryForEdit(id: string): Promise<AdminCategory | null> {

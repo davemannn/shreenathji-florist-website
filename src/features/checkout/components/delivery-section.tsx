@@ -14,18 +14,28 @@ import {
   todayIsoIst,
   type DeliverySlotType,
 } from "@/lib/delivery";
+import type { StoreSettings } from "@/features/settings/types";
 import { DeliveryDatePicker } from "./delivery-date-picker";
 import type { CheckoutValues } from "../validations";
 import type { DeliverySlotOption } from "../types";
 
-const UNAVAILABLE_REASON: Record<DeliverySlotType, string> = {
-  NORMAL: "Not available for same-day — pick Instant or Midnight instead.",
-  MIDNIGHT: "Booking for tonight closes at 8 PM — pick a future date or go Instant.",
-  FIXED: "",
-};
+function unavailableReason(type: DeliverySlotType, cutoffHour: number): string {
+  if (type === "NORMAL") return "Not available for same-day — pick Instant or Midnight instead.";
+  if (type === "MIDNIGHT") {
+    const label = cutoffHour > 12 ? `${cutoffHour - 12} PM` : `${cutoffHour} AM`;
+    return `Booking for tonight closes at ${label} — pick a future date or go Instant.`;
+  }
+  return "";
+}
 
-export function DeliverySection({ deliverySlots }: { deliverySlots: DeliverySlotOption[] }) {
+interface DeliverySectionProps {
+  deliverySlots: DeliverySlotOption[];
+  storeSettings: StoreSettings;
+}
+
+export function DeliverySection({ deliverySlots, storeSettings }: DeliverySectionProps) {
   const { control, register, watch, setValue } = useFormContext<CheckoutValues>();
+  const { midnightCutoffHour, midnightCharge } = storeSettings;
   const now = nowInIst();
   const selectedDate = watch("deliveryDate");
   const selectedSlotId = watch("deliverySlotId");
@@ -40,7 +50,7 @@ export function DeliverySection({ deliverySlots }: { deliverySlots: DeliverySlot
     if (
       selectedSlot &&
       selectedSlot.type !== "FIXED" &&
-      !isSlotAvailable(selectedSlot.type, selectedDate)
+      !isSlotAvailable(selectedSlot.type, selectedDate, undefined, midnightCutoffHour)
     ) {
       setValue("deliverySlotId", undefined);
     }
@@ -57,10 +67,19 @@ export function DeliverySection({ deliverySlots }: { deliverySlots: DeliverySlot
             <div className="flex items-center gap-3">
               <Zap className="text-brand size-5 shrink-0" aria-hidden="true" />
               <div>
-                <p className="text-sm font-medium">{expressDisplayLabel(now)}</p>
+                <p className="text-sm font-medium">
+                  {expressDisplayLabel(now, midnightCutoffHour)}
+                </p>
                 <p className="text-muted-foreground text-xs">
                   {formatINR(
-                    effectiveSlotCharge("FIXED", todayIsoIst(), expressSlot.extraCharge, now),
+                    effectiveSlotCharge(
+                      "FIXED",
+                      todayIsoIst(),
+                      expressSlot.extraCharge,
+                      now,
+                      midnightCutoffHour,
+                      midnightCharge,
+                    ),
                   )}{" "}
                   · delivering today
                 </p>
@@ -92,12 +111,26 @@ export function DeliverySection({ deliverySlots }: { deliverySlots: DeliverySlot
                 <Label className="mb-2 block">Delivery Slot</Label>
                 <div className="flex flex-col gap-2">
                   {deliverySlots.map((slot) => {
-                    const available = isSlotAvailable(slot.type, selectedDate, now);
+                    const available = isSlotAvailable(
+                      slot.type,
+                      selectedDate,
+                      now,
+                      midnightCutoffHour,
+                    );
                     const isExpress = slot.type === "FIXED";
                     const charge = isExpress
-                      ? effectiveSlotCharge("FIXED", todayIsoIst(), slot.extraCharge, now)
+                      ? effectiveSlotCharge(
+                          "FIXED",
+                          todayIsoIst(),
+                          slot.extraCharge,
+                          now,
+                          midnightCutoffHour,
+                          midnightCharge,
+                        )
                       : slot.extraCharge;
-                    const label = isExpress ? expressDisplayLabel(now) : slot.label;
+                    const label = isExpress
+                      ? expressDisplayLabel(now, midnightCutoffHour)
+                      : slot.label;
 
                     return (
                       <button
@@ -128,7 +161,7 @@ export function DeliverySection({ deliverySlots }: { deliverySlots: DeliverySlot
                           </span>
                         ) : (
                           <span className="text-muted-foreground text-xs">
-                            {UNAVAILABLE_REASON[slot.type]}
+                            {unavailableReason(slot.type, midnightCutoffHour)}
                           </span>
                         )}
                       </button>

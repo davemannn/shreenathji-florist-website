@@ -16,12 +16,22 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ContentImage } from "@/components/shared/content-image";
+import { SortableHeader } from "@/components/shared/sortable-header";
 import { deleteCategoryAction } from "../actions";
 import type { AdminCategory } from "../types";
+import type { AdminCategorySort } from "../queries";
 
-export function CategoriesTable({ categories }: { categories: AdminCategory[] }) {
+interface CategoriesTableProps {
+  categories: AdminCategory[];
+  sort?: AdminCategorySort;
+  dir?: "asc" | "desc";
+  search?: string;
+}
+
+export function CategoriesTable({ categories, sort, dir, search }: CategoriesTableProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const extraParams = { search };
 
   function handleDelete(category: AdminCategory) {
     if (category.productCount > 0) {
@@ -51,10 +61,30 @@ export function CategoriesTable({ categories }: { categories: AdminCategory[] })
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Category</TableHead>
-          <TableHead>Products</TableHead>
-          <TableHead>Flags</TableHead>
-          <TableHead>Sort</TableHead>
+          <SortableHeader
+            basePath="/admin/categories"
+            label="Category"
+            sortKey="name"
+            currentSort={sort}
+            currentDir={dir}
+            extraParams={extraParams}
+          />
+          <SortableHeader
+            basePath="/admin/categories"
+            label="Products"
+            sortKey="products"
+            currentSort={sort}
+            currentDir={dir}
+            extraParams={extraParams}
+          />
+          <SortableHeader
+            basePath="/admin/categories"
+            label="Flags"
+            sortKey="flags"
+            currentSort={sort}
+            currentDir={dir}
+            extraParams={extraParams}
+          />
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -82,7 +112,6 @@ export function CategoriesTable({ categories }: { categories: AdminCategory[] })
               {category.isOccasion ? <Badge variant="secondary">Occasion</Badge> : null}
               {category.isFeatured ? <Badge variant="secondary">Featured</Badge> : null}
             </TableCell>
-            <TableCell className="text-muted-foreground">{category.sortOrder}</TableCell>
             <TableCell className="text-right">
               <div className="flex justify-end gap-2">
                 <Button
@@ -94,12 +123,13 @@ export function CategoriesTable({ categories }: { categories: AdminCategory[] })
                   Edit
                 </Button>
                 <Button
-                  variant="ghost"
-                  size="icon-sm"
+                  variant="destructive"
+                  size="sm"
                   disabled={isPending}
                   onClick={() => handleDelete(category)}
                 >
                   <Trash2 className="size-3.5" aria-hidden="true" />
+                  Delete
                 </Button>
               </div>
             </TableCell>

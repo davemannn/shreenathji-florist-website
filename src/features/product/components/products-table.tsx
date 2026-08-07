@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Pencil, Power } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -15,13 +16,23 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ContentImage } from "@/components/shared/content-image";
+import { SortableHeader } from "@/components/shared/sortable-header";
 import { formatINR } from "@/lib/format";
 import { setProductActiveAction } from "../actions";
 import type { AdminProductListItem } from "../types";
+import type { AdminProductSort } from "../queries";
 
-export function ProductsTable({ products }: { products: AdminProductListItem[] }) {
+interface ProductsTableProps {
+  products: AdminProductListItem[];
+  sort?: AdminProductSort;
+  dir?: "asc" | "desc";
+  search?: string;
+}
+
+export function ProductsTable({ products, sort, dir, search }: ProductsTableProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const extraParams = { search };
 
   function handleToggleActive(id: string, nextActive: boolean) {
     startTransition(async () => {
@@ -43,11 +54,39 @@ export function ProductsTable({ products }: { products: AdminProductListItem[] }
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Product</TableHead>
+          <SortableHeader
+            basePath="/admin/products"
+            label="Product"
+            sortKey="title"
+            currentSort={sort}
+            currentDir={dir}
+            extraParams={extraParams}
+          />
           <TableHead>Categories</TableHead>
-          <TableHead>Price</TableHead>
-          <TableHead>Stock</TableHead>
-          <TableHead>Status</TableHead>
+          <SortableHeader
+            basePath="/admin/products"
+            label="Price"
+            sortKey="price"
+            currentSort={sort}
+            currentDir={dir}
+            extraParams={extraParams}
+          />
+          <SortableHeader
+            basePath="/admin/products"
+            label="Stock"
+            sortKey="stock"
+            currentSort={sort}
+            currentDir={dir}
+            extraParams={extraParams}
+          />
+          <SortableHeader
+            basePath="/admin/products"
+            label="Status"
+            sortKey="status"
+            currentSort={sort}
+            currentDir={dir}
+            extraParams={extraParams}
+          />
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -97,6 +136,7 @@ export function ProductsTable({ products }: { products: AdminProductListItem[] }
                   nativeButton={false}
                   render={<Link href={`/admin/products/${product.id}`} />}
                 >
+                  <Pencil className="size-3.5" aria-hidden="true" />
                   Edit
                 </Button>
                 <Button
@@ -105,6 +145,7 @@ export function ProductsTable({ products }: { products: AdminProductListItem[] }
                   disabled={isPending}
                   onClick={() => handleToggleActive(product.id, !product.isActive)}
                 >
+                  <Power className="size-3.5" aria-hidden="true" />
                   {product.isActive ? "Deactivate" : "Activate"}
                 </Button>
               </div>

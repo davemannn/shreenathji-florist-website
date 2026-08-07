@@ -55,6 +55,7 @@ function toProductDetail(product: ProductWithRelations): ProductDetail {
       compareAtPrice: variant.compareAtPrice ?? undefined,
       stock: variant.stock,
       isDefault: variant.isDefault,
+      imageUrl: variant.imageUrl ?? undefined,
     })),
     reviews: product.reviews.map((review) => ({
       id: review.id,
@@ -157,6 +158,8 @@ function toAdminDetail(product: ProductAdminRow): AdminProductDetail {
       compareAtPrice: v.compareAtPrice ?? undefined,
       stock: v.stock,
       isDefault: v.isDefault,
+      imageUrl: v.imageUrl ?? undefined,
+      imageCloudinaryId: v.imageCloudinaryId ?? undefined,
     })),
     images: product.images.map((img) => ({
       url: img.url,
@@ -164,6 +167,13 @@ function toAdminDetail(product: ProductAdminRow): AdminProductDetail {
       cloudinaryId: img.cloudinaryId ?? undefined,
     })),
   };
+}
+
+export type AdminProductSort = "title" | "price" | "stock" | "status";
+
+export interface AdminProductListQueryParams extends ListProductsAdminParams {
+  sort?: AdminProductSort;
+  dir?: "asc" | "desc";
 }
 
 export interface AdminProductListResult {
@@ -174,10 +184,21 @@ export interface AdminProductListResult {
 }
 
 export async function listProductsAdmin(
-  params: ListProductsAdminParams = {},
+  params: AdminProductListQueryParams = {},
 ): Promise<AdminProductListResult> {
-  const { products, total, page, pageSize } = await listProductsAdminRepo(params);
-  return { products: products.map(toAdminListItem), total, page, pageSize };
+  const { sort, dir = "asc", page = 1, pageSize = 20, ...repoParams } = params;
+  const products = await listProductsAdminRepo(repoParams);
+  const mapped = products.map(toAdminListItem);
+
+  const factor = dir === "desc" ? -1 : 1;
+  if (sort === "title") mapped.sort((a, b) => factor * a.title.localeCompare(b.title));
+  if (sort === "price") mapped.sort((a, b) => factor * (a.minPrice - b.minPrice));
+  if (sort === "stock") mapped.sort((a, b) => factor * (a.totalStock - b.totalStock));
+  if (sort === "status") mapped.sort((a, b) => factor * (Number(a.isActive) - Number(b.isActive)));
+
+  const total = mapped.length;
+  const start = (page - 1) * pageSize;
+  return { products: mapped.slice(start, start + pageSize), total, page, pageSize };
 }
 
 export async function getProductForEdit(id: string): Promise<AdminProductDetail | null> {

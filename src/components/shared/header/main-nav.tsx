@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { mainNav } from "@/config/navigation";
+import type { NavItem } from "@/config/navigation";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -14,11 +14,11 @@ import {
 import { cn } from "@/lib/utils";
 
 /** Desktop dropdown navigation. Hidden below `lg`; MobileNav covers small screens. */
-export function MainNav() {
+export function MainNav({ items }: { items: NavItem[] }) {
   return (
     <NavigationMenu className="hidden lg:flex">
       <NavigationMenuList>
-        {mainNav.map((item) =>
+        {items.map((item) =>
           item.children ? (
             <NavigationMenuItem key={item.label}>
               <NavigationMenuTrigger>{item.label}</NavigationMenuTrigger>

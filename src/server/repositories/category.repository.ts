@@ -23,6 +23,26 @@ export async function findCategoryById(id: string) {
   return prisma.category.findUnique({ where: { id } });
 }
 
+export interface ListCategoriesAdminParams {
+  search?: string;
+}
+
+/**
+ * Includes `_count.products` instead of the caller running a separate
+ * `countProductsInCategory` query per row — this used to be an N+1
+ * (`Promise.all` over every category) before the admin list needed to sort
+ * by product count too.
+ */
+export async function listCategoriesAdmin(params: ListCategoriesAdminParams = {}) {
+  const { search } = params;
+  const where = search ? { name: { contains: search } } : {};
+  return prisma.category.findMany({
+    where,
+    include: { _count: { select: { products: true } } },
+    orderBy: { sortOrder: "asc" as const },
+  });
+}
+
 export interface UpsertCategoryInput {
   name: string;
   slug: string;
@@ -31,15 +51,32 @@ export interface UpsertCategoryInput {
   imageCloudinaryId?: string;
   isOccasion: boolean;
   isFeatured: boolean;
-  sortOrder: number;
 }
 
+/**
+ * New categories land at the end of the sort order automatically — the
+ * admin reorders visually via drag-and-drop afterwards (reorderCategories
+ * below) rather than typing a raw sortOrder number.
+ */
 export async function createCategory(input: UpsertCategoryInput) {
-  return prisma.category.create({ data: input });
+  const last = await prisma.category.findFirst({
+    orderBy: { sortOrder: "desc" },
+    select: { sortOrder: true },
+  });
+  return prisma.category.create({ data: { ...input, sortOrder: (last?.sortOrder ?? -1) + 1 } });
 }
 
 export async function updateCategory(id: string, input: UpsertCategoryInput) {
   return prisma.category.update({ where: { id }, data: input });
+}
+
+/** Persists a full reorder — `orderedIds` is the complete new top-to-bottom order. */
+export async function reorderCategories(orderedIds: string[]) {
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.category.update({ where: { id }, data: { sortOrder: index } }),
+    ),
+  );
 }
 
 /**

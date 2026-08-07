@@ -11,7 +11,6 @@ export const categoryFormSchema = z.object({
   imageCloudinaryId: z.string().optional(),
   isOccasion: z.boolean(),
   isFeatured: z.boolean(),
-  sortOrder: z.coerce.number().int().min(0),
 });
 
 export type CategoryFormValues = z.output<typeof categoryFormSchema>;

@@ -12,6 +12,10 @@ interface CloudinaryUploaderProps {
   onChange: (url: string, publicId: string) => void;
   onRemove?: () => void;
   className?: string;
+  /** Thumbnail size when an image is set — defaults to a 96px preview, pass "size-16" etc. for compact contexts like a variant row. */
+  thumbnailClassName?: string;
+  /** Trigger button text when no image is set yet. */
+  triggerLabel?: string;
 }
 
 /**
@@ -26,6 +30,8 @@ export function CloudinaryUploader({
   onChange,
   onRemove,
   className,
+  thumbnailClassName = "size-24",
+  triggerLabel = "Upload Image",
 }: CloudinaryUploaderProps) {
   return (
     <CldUploadWidget
@@ -44,7 +50,9 @@ export function CloudinaryUploader({
       {({ open }) => (
         <div className={className}>
           {value ? (
-            <div className="group relative size-24 overflow-hidden rounded-md border">
+            <div
+              className={`group relative overflow-hidden rounded-md border ${thumbnailClassName}`}
+            >
               <Image src={value} alt="" fill className="object-cover" sizes="96px" />
               {onRemove ? (
                 <button
@@ -60,7 +68,7 @@ export function CloudinaryUploader({
           ) : (
             <Button type="button" variant="outline" size="sm" onClick={() => open()}>
               <ImagePlus className="size-4" aria-hidden="true" />
-              Upload Image
+              {triggerLabel}
             </Button>
           )}
         </div>

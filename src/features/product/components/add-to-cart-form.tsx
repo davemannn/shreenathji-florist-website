@@ -4,14 +4,16 @@ import { useState } from "react";
 import { Minus, Plus, ShoppingBag } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ContentImage } from "@/components/shared/content-image";
 import { cn } from "@/lib/utils";
 import { formatINR } from "@/lib/format";
 import { useCartStore } from "@/stores/cart-store";
+import { useVariantSelection } from "./variant-selection-context";
 import type { ProductDetail } from "../types";
 
 export function AddToCartForm({ product }: { product: ProductDetail }) {
   const defaultVariant = product.variants.find((v) => v.isDefault) ?? product.variants[0];
-  const [variantId, setVariantId] = useState(defaultVariant?.id);
+  const { variantId, setVariantId } = useVariantSelection();
   const [quantity, setQuantity] = useState(1);
   const addItem = useCartStore((state) => state.addItem);
 
@@ -27,7 +29,7 @@ export function AddToCartForm({ product }: { product: ProductDetail }) {
         variantId: variant.id,
         productTitle: product.title,
         variantLabel: variant.label,
-        imageUrl: product.imageUrl,
+        imageUrl: variant.imageUrl ?? product.imageUrl,
         price: variant.price,
       },
       quantity,
@@ -57,12 +59,21 @@ export function AddToCartForm({ product }: { product: ProductDetail }) {
                 onClick={() => setVariantId(v.id)}
                 disabled={v.stock <= 0}
                 className={cn(
-                  "rounded-full border px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40",
+                  "flex items-center gap-2 rounded-full border py-1.5 pr-4 pl-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40",
+                  !v.imageUrl && "pl-4",
                   v.id === variantId
                     ? "border-brand bg-brand/10 text-brand"
                     : "border-border hover:bg-muted",
                 )}
               >
+                {v.imageUrl ? (
+                  <ContentImage
+                    src={v.imageUrl}
+                    alt=""
+                    className="size-6 shrink-0 rounded-full"
+                    sizes="24px"
+                  />
+                ) : null}
                 {v.label}
                 {v.stock <= 0 ? " (Out of stock)" : ""}
               </button>

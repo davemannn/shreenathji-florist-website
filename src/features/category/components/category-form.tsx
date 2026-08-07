@@ -7,12 +7,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Form,
   FormField,
   FormItem,
   FormLabel,
   FormControl,
+  FormDescription,
   FormMessage,
 } from "@/components/ui/form";
 import { CloudinaryUploader } from "@/components/shared/cloudinary-uploader";
@@ -38,7 +40,6 @@ export function CategoryForm({ category }: { category?: AdminCategory }) {
       imageCloudinaryId: category?.imageCloudinaryId ?? "",
       isOccasion: category?.isOccasion ?? false,
       isFeatured: category?.isFeatured ?? false,
-      sortOrder: category?.sortOrder ?? 0,
     },
   });
   const { setValue } = form;
@@ -68,7 +69,7 @@ export function CategoryForm({ category }: { category?: AdminCategory }) {
         className="flex max-w-lg flex-col gap-4"
       >
         <div>
-          <FormLabel>Image</FormLabel>
+          <Label>Image</Label>
           <div className="mt-2">
             <CloudinaryUploader
               folder="categories"
@@ -107,6 +108,10 @@ export function CategoryForm({ category }: { category?: AdminCategory }) {
               <FormControl>
                 <Input {...field} placeholder="flowers" />
               </FormControl>
+              <FormDescription>
+                The URL for this category&rsquo;s page — e.g. shreenathjiflorist.com/shop/
+                {field.value || "flowers"}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -120,43 +125,44 @@ export function CategoryForm({ category }: { category?: AdminCategory }) {
               <FormControl>
                 <Input {...field} />
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="sortOrder"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Sort Order</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} value={field.value as number} className="w-24" />
-              </FormControl>
+              <FormDescription>
+                Shown at the top of this category&rsquo;s page, under its name.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="flex gap-4">
+        <div className="flex flex-col gap-3">
           <FormField
             control={form.control}
             name="isOccasion"
             render={({ field }) => (
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                Occasion (shown under &ldquo;Occasions&rdquo; nav)
-              </label>
+              <FormItem>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  Occasion
+                </label>
+                <FormDescription className="pl-6">
+                  Lists this category under the header&rsquo;s &ldquo;Occasions&rdquo; menu (e.g.
+                  Birthday, Anniversary) instead of &ldquo;Shop&rdquo; (e.g. Flowers, Cakes).
+                </FormDescription>
+              </FormItem>
             )}
           />
           <FormField
             control={form.control}
             name="isFeatured"
             render={({ field }) => (
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                Featured on homepage
-              </label>
+              <FormItem>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  Featured on homepage
+                </label>
+                <FormDescription className="pl-6">
+                  Shows this category in the homepage&rsquo;s featured categories row.
+                </FormDescription>
+              </FormItem>
             )}
           />
         </div>

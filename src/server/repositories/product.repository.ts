@@ -129,25 +129,25 @@ export interface ListProductsAdminParams {
   pageSize?: number;
 }
 
+/**
+ * Returns every matching row, unpaginated — the admin product list sorts
+ * (including by computed columns like price/stock, which Prisma can't
+ * order by without raw SQL — see the price-sort comment above) and
+ * paginates in the application layer instead. Fine at this catalog's size
+ * (a single florist shop); see product/queries.ts.
+ */
 export async function listProductsAdmin(params: ListProductsAdminParams = {}) {
-  const { search, page = 1, pageSize = 20 } = params;
+  const { search } = params;
 
   const where = search
     ? { OR: [{ title: { contains: search } }, { slug: { contains: search } }] }
     : {};
 
-  const [products, total] = await Promise.all([
-    prisma.product.findMany({
-      where,
-      include: PRODUCT_INCLUDE,
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.product.count({ where }),
-  ]);
-
-  return { products, total, page, pageSize };
+  return prisma.product.findMany({
+    where,
+    include: PRODUCT_INCLUDE,
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 export async function findProductByIdAdmin(id: string) {
@@ -160,6 +160,8 @@ export interface ProductVariantInput {
   compareAtPrice?: number;
   stock: number;
   isDefault: boolean;
+  imageUrl?: string;
+  imageCloudinaryId?: string;
 }
 
 export interface ProductImageInput {

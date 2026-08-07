@@ -34,14 +34,15 @@ export function tomorrowIsoIst(): string {
 }
 
 /**
- * Cutoff hour (IST, 24h clock) after which same-day Midnight-slot booking
- * closes, and Express/Instant delivery starts carrying Midnight pricing
- * instead — fulfilling "within 2-4 hours" past this point means arriving
- * close to midnight anyway. Hardcoded for now; move to an admin-configurable
- * setting once the admin panel supports it.
+ * Fallback cutoff hour / charges (IST, 24h clock) — used only if a caller
+ * doesn't pass the real configured value. The actual admin-configurable
+ * values live in StoreSettings (features/settings) now; every real call
+ * site (order.service.ts, checkout, cart, the marketing pages) fetches
+ * those and passes them in explicitly. These consts just keep every other
+ * caller (and any test calling these pure functions directly) working
+ * with the pre-Settings behavior instead of silently going undefined.
  */
 export const MIDNIGHT_CUTOFF_HOUR = 20; // 8 PM IST
-
 export const EXPRESS_CHARGE = 99;
 export const MIDNIGHT_CHARGE = 199;
 
@@ -51,8 +52,11 @@ export function isSameDayIst(dateIso: string, now: Date = nowInIst()): boolean {
   return dateIso === toIsoDate(now);
 }
 
-export function isPastMidnightCutoff(now: Date = nowInIst()): boolean {
-  return now.getUTCHours() >= MIDNIGHT_CUTOFF_HOUR;
+export function isPastMidnightCutoff(
+  now: Date = nowInIst(),
+  cutoffHour: number = MIDNIGHT_CUTOFF_HOUR,
+): boolean {
+  return now.getUTCHours() >= cutoffHour;
 }
 
 /** Whether a given slot type can be booked for the given delivery date. */
@@ -60,10 +64,11 @@ export function isSlotAvailable(
   type: DeliverySlotType,
   dateIso: string,
   now: Date = nowInIst(),
+  cutoffHour: number = MIDNIGHT_CUTOFF_HOUR,
 ): boolean {
   const sameDay = isSameDayIst(dateIso, now);
   if (type === "NORMAL") return !sameDay; // Standard: next day onward only
-  if (type === "MIDNIGHT") return !sameDay || !isPastMidnightCutoff(now); // today: only before cutoff
+  if (type === "MIDNIGHT") return !sameDay || !isPastMidnightCutoff(now, cutoffHour); // today: only before cutoff
   return true; // FIXED (Express/Instant): always available
 }
 
@@ -78,16 +83,21 @@ export function effectiveSlotCharge(
   dateIso: string,
   baseCharge: number,
   now: Date = nowInIst(),
+  cutoffHour: number = MIDNIGHT_CUTOFF_HOUR,
+  midnightCharge: number = MIDNIGHT_CHARGE,
 ): number {
-  if (type === "FIXED" && isSameDayIst(dateIso, now) && isPastMidnightCutoff(now)) {
-    return MIDNIGHT_CHARGE;
+  if (type === "FIXED" && isSameDayIst(dateIso, now) && isPastMidnightCutoff(now, cutoffHour)) {
+    return midnightCharge;
   }
   return baseCharge;
 }
 
 /** Display label for the Express/Instant slot, adjusted once it's carrying Midnight pricing. */
-export function expressDisplayLabel(now: Date = nowInIst()): string {
-  return isPastMidnightCutoff(now)
+export function expressDisplayLabel(
+  now: Date = nowInIst(),
+  cutoffHour: number = MIDNIGHT_CUTOFF_HOUR,
+): string {
+  return isPastMidnightCutoff(now, cutoffHour)
     ? "Instant Delivery (arriving by midnight)"
     : "Instant Delivery (within 2-4 hours)";
 }

@@ -1,3 +1,14 @@
-// Domain types for the "settings" feature.
-// Populated when the settings feature is built out.
-export {};
+/**
+ * Site-wide pricing configuration — the DB-backed replacement for what used
+ * to be hardcoded constants in src/lib/constants.ts / src/lib/delivery.ts.
+ * Threaded as a prop into whichever client components price an order live
+ * (cart/checkout previews) rather than imported as a static module, since
+ * these values can now change at runtime via /admin/settings.
+ */
+export interface StoreSettings {
+  baseDeliveryCharge: number;
+  freeDeliveryThreshold: number;
+  midnightCutoffHour: number;
+  expressCharge: number;
+  midnightCharge: number;
+}

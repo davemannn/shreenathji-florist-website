@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/stores/cart-store";
+import type { StoreSettings } from "@/features/settings/types";
 import { CartLineItemRow } from "./cart-line-item";
 import { CartSummary } from "./cart-summary";
 import { CouponInput } from "./coupon-input";
@@ -24,7 +25,7 @@ function EmptyCart() {
   );
 }
 
-export function CartView() {
+export function CartView({ storeSettings }: { storeSettings: StoreSettings }) {
   const items = useCartStore((state) => state.items);
   const appliedCoupon = useCartStore((state) => state.appliedCoupon);
   const setCoupon = useCartStore((state) => state.setCoupon);
@@ -48,7 +49,11 @@ export function CartView() {
       </div>
       <div className="flex flex-col gap-4">
         <CouponInput subtotal={subtotal} appliedCoupon={appliedCoupon} onApply={setCoupon} />
-        <CartSummary subtotal={subtotal} appliedCoupon={appliedCoupon} />
+        <CartSummary
+          subtotal={subtotal}
+          appliedCoupon={appliedCoupon}
+          storeSettings={storeSettings}
+        />
       </div>
     </div>
   );

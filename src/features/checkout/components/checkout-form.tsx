@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useCartStore } from "@/stores/cart-store";
 import { tomorrowIsoIst } from "@/lib/delivery";
+import type { StoreSettings } from "@/features/settings/types";
 import { checkoutSchema, type CheckoutValues } from "../validations";
 import { placeOrderAction, verifyRazorpayPaymentAction } from "../actions";
 import { openRazorpayCheckout } from "@/lib/razorpay-checkout";
@@ -19,9 +20,10 @@ import type { DeliverySlotOption, SavedAddress } from "../types";
 interface CheckoutFormProps {
   addresses: SavedAddress[];
   deliverySlots: DeliverySlotOption[];
+  storeSettings: StoreSettings;
 }
 
-export function CheckoutForm({ addresses, deliverySlots }: CheckoutFormProps) {
+export function CheckoutForm({ addresses, deliverySlots, storeSettings }: CheckoutFormProps) {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const appliedCoupon = useCartStore((state) => state.appliedCoupon);
@@ -150,10 +152,14 @@ export function CheckoutForm({ addresses, deliverySlots }: CheckoutFormProps) {
       >
         <div className="flex flex-col gap-8">
           <AddressSection addresses={addresses} />
-          <DeliverySection deliverySlots={deliverySlots} />
+          <DeliverySection deliverySlots={deliverySlots} storeSettings={storeSettings} />
           <PaymentSection />
         </div>
-        <OrderSummary deliverySlots={deliverySlots} submitting={submitting} />
+        <OrderSummary
+          deliverySlots={deliverySlots}
+          submitting={submitting}
+          storeSettings={storeSettings}
+        />
       </form>
     </FormProvider>
   );

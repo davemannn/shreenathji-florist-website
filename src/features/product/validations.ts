@@ -6,6 +6,8 @@ const variantSchema = z.object({
   compareAtPrice: z.coerce.number().int().min(1).optional(),
   stock: z.coerce.number().int().min(0),
   isDefault: z.boolean(),
+  imageUrl: z.string().optional(),
+  imageCloudinaryId: z.string().optional(),
 });
 
 const imageSchema = z.object({

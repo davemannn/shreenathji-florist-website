@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { getProductBySlug, getRelatedProducts } from "@/features/product/queries";
 import { ProductGallery } from "@/features/product/components/product-gallery";
+import { VariantSelectionProvider } from "@/features/product/components/variant-selection-context";
 import { AddToCartForm } from "@/features/product/components/add-to-cart-form";
 import { DeliveryEstimate } from "@/features/product/components/delivery-estimate";
 import { ProductReviews } from "@/features/product/components/product-reviews";
@@ -42,21 +43,29 @@ export default async function ProductDetailPage({ params }: PageProps<"/shop/pro
         <span className="text-foreground">{product.title}</span>
       </nav>
 
-      <div className="grid gap-10 lg:grid-cols-2">
-        <ProductGallery images={product.images} title={product.title} />
-        <div className="flex flex-col gap-6">
-          <div>
-            <StarRating rating={product.rating} reviewCount={product.reviewCount} />
-            <h1 className="mt-2 text-3xl md:text-4xl">{product.title}</h1>
-          </div>
-          <AddToCartForm product={product} />
-          <DeliveryEstimate />
-          <div>
-            <h2 className="mb-2 text-sm font-semibold tracking-wide uppercase">Description</h2>
-            <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>
+      <VariantSelectionProvider
+        defaultVariantId={(product.variants.find((v) => v.isDefault) ?? product.variants[0])?.id}
+      >
+        <div className="grid gap-10 lg:grid-cols-2">
+          <ProductGallery
+            images={product.images}
+            title={product.title}
+            variants={product.variants}
+          />
+          <div className="flex flex-col gap-6">
+            <div>
+              <StarRating rating={product.rating} reviewCount={product.reviewCount} />
+              <h1 className="mt-2 text-3xl md:text-4xl">{product.title}</h1>
+            </div>
+            <AddToCartForm product={product} />
+            <DeliveryEstimate />
+            <div>
+              <h2 className="mb-2 text-sm font-semibold tracking-wide uppercase">Description</h2>
+              <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>
+            </div>
           </div>
         </div>
-      </div>
+      </VariantSelectionProvider>
 
       <ProductReviews reviews={product.reviews} />
       <RelatedProducts products={relatedProducts} />

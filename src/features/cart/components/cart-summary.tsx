@@ -1,18 +1,20 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
-import { BASE_DELIVERY_CHARGE, FREE_DELIVERY_THRESHOLD } from "@/lib/constants";
+import type { StoreSettings } from "@/features/settings/types";
 import type { AppliedCoupon } from "../types";
 
 interface CartSummaryProps {
   subtotal: number;
   appliedCoupon: AppliedCoupon | null;
+  storeSettings: StoreSettings;
 }
 
-export function CartSummary({ subtotal, appliedCoupon }: CartSummaryProps) {
+export function CartSummary({ subtotal, appliedCoupon, storeSettings }: CartSummaryProps) {
   const discount = appliedCoupon?.discount ?? 0;
   const afterDiscount = subtotal - discount;
-  const deliveryCharge = afterDiscount >= FREE_DELIVERY_THRESHOLD ? 0 : BASE_DELIVERY_CHARGE;
+  const deliveryCharge =
+    afterDiscount >= storeSettings.freeDeliveryThreshold ? 0 : storeSettings.baseDeliveryCharge;
   const total = afterDiscount + deliveryCharge;
 
   return (
@@ -34,8 +36,8 @@ export function CartSummary({ subtotal, appliedCoupon }: CartSummaryProps) {
       </div>
       {deliveryCharge > 0 ? (
         <p className="text-muted-foreground text-xs">
-          Free delivery on orders over {formatINR(FREE_DELIVERY_THRESHOLD)}. Midnight/express slots
-          may add a surcharge, shown at checkout.
+          Free delivery on orders over {formatINR(storeSettings.freeDeliveryThreshold)}.
+          Midnight/express slots may add a surcharge, shown at checkout.
         </p>
       ) : null}
       <div className="flex justify-between border-t pt-3 text-base font-semibold">

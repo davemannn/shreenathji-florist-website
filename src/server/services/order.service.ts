@@ -7,7 +7,7 @@ import {
   incrementCouponUsage,
 } from "@/server/repositories/coupon.repository";
 import { findDeliverySlotById } from "@/server/repositories/delivery-slot.repository";
-import { BASE_DELIVERY_CHARGE, FREE_DELIVERY_THRESHOLD } from "@/lib/constants";
+import { getStoreSettings } from "@/features/settings/queries";
 import { effectiveSlotCharge, isSlotAvailable, toIsoDate } from "@/lib/delivery";
 
 export interface CartLineItemInput {
@@ -56,6 +56,8 @@ export async function calculateOrderTotals(
   subtotal: number,
   options: { couponCode?: string; deliverySlotId?: string; deliveryDate?: Date } = {},
 ): Promise<OrderTotals> {
+  const settings = await getStoreSettings();
+
   let discount = 0;
   let couponId: string | undefined;
   let couponError: string | undefined;
@@ -81,7 +83,8 @@ export async function calculateOrderTotals(
     }
   }
 
-  let deliveryCharge = subtotal - discount >= FREE_DELIVERY_THRESHOLD ? 0 : BASE_DELIVERY_CHARGE;
+  let deliveryCharge =
+    subtotal - discount >= settings.freeDeliveryThreshold ? 0 : settings.baseDeliveryCharge;
 
   if (options.deliverySlotId) {
     const slot = await findDeliverySlotById(options.deliverySlotId);
@@ -91,11 +94,18 @@ export async function calculateOrderTotals(
       const dateIso =
         slot.type === "FIXED" ? toIsoDate() : toIsoDate(options.deliveryDate ?? new Date());
 
-      if (!isSlotAvailable(slot.type, dateIso)) {
+      if (!isSlotAvailable(slot.type, dateIso, undefined, settings.midnightCutoffHour)) {
         throw new Error("The selected delivery slot is no longer available for this date.");
       }
 
-      deliveryCharge += effectiveSlotCharge(slot.type, dateIso, slot.extraCharge);
+      deliveryCharge += effectiveSlotCharge(
+        slot.type,
+        dateIso,
+        slot.extraCharge,
+        undefined,
+        settings.midnightCutoffHour,
+        settings.midnightCharge,
+      );
     }
   }
 

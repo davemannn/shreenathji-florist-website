@@ -1,13 +1,18 @@
 "use server";
 
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/server/auth/config";
+import { requireAdminCapability } from "@/server/auth/require-admin";
 import {
   attachRazorpayOrderId,
+  adjustGiftCardBalance as adjustGiftCardBalanceRepo,
   createGiftCard,
   findGiftCardById,
+  issueGiftCard as issueGiftCardRepo,
   markGiftCardPaid,
 } from "@/server/repositories/gift-card.repository";
+import { findUserByEmail } from "@/server/repositories/user.repository";
 import {
   createRazorpayOrder,
   getRazorpayPublicKeyId,
@@ -15,7 +20,15 @@ import {
 } from "@/server/payments/razorpay";
 import { getResendClient } from "@/server/email/resend";
 import { GiftCardEmail } from "@/emails/gift-card-email";
-import { giftCardSchema, type GiftCardValues } from "./validations";
+import {
+  adjustGiftCardBalanceFormSchema,
+  giftCardSchema,
+  issueGiftCardFormSchema,
+  type AdjustGiftCardBalanceFormValues,
+  type GiftCardValues,
+  type IssueGiftCardFormValues,
+} from "./validations";
+import { generateGiftCardCode } from "./generate-code";
 
 async function requireUser() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -23,12 +36,6 @@ async function requireUser() {
     throw new Error("You must be signed in to purchase a gift card.");
   }
   return session.user;
-}
-
-/** `GC-XXXXXXXX` — simple and readable enough to read aloud over a phone call. */
-function generateGiftCardCode(): string {
-  const random = Math.random().toString(36).slice(2, 10).toUpperCase();
-  return `GC-${random}`;
 }
 
 export async function purchaseGiftCardAction(input: GiftCardValues) {
@@ -116,4 +123,50 @@ export async function verifyGiftCardPaymentAction(input: VerifyGiftCardPaymentIn
   }
 
   return { code: giftCard.code };
+}
+
+// ---------------------------------------------------------------------------
+// Admin panel — marketing/content management (Phase 4). Both actions require
+// gift_cards:issue, which only super_admin has (see permissions.ts) — this is
+// spendable balance created or changed with no real payment behind it.
+// ---------------------------------------------------------------------------
+
+export async function issueGiftCardAction(input: IssueGiftCardFormValues) {
+  const session = await requireAdminCapability("gift_cards:issue");
+  const values = issueGiftCardFormSchema.parse(input);
+
+  const purchaser = await findUserByEmail(values.purchaserEmail);
+  if (!purchaser) {
+    throw new Error("No account found with that email — the customer needs to sign up first.");
+  }
+
+  const isForOther = values.recipientType === "OTHER";
+  const card = await issueGiftCardRepo({
+    code: generateGiftCardCode(),
+    amount: values.amount,
+    purchaserId: purchaser.id,
+    recipientType: values.recipientType,
+    recipientName: isForOther ? values.recipientName : undefined,
+    recipientEmail: isForOther ? values.recipientEmail : undefined,
+    recipientPhone: isForOther ? values.recipientPhone : undefined,
+    message: values.message,
+    reason: values.reason,
+    issuedByUserId: session.userId,
+  });
+
+  revalidatePath("/admin/gift-cards");
+  return { id: card.id, code: card.code };
+}
+
+export async function adjustGiftCardBalanceAction(
+  giftCardId: string,
+  input: AdjustGiftCardBalanceFormValues,
+) {
+  const session = await requireAdminCapability("gift_cards:issue");
+  const values = adjustGiftCardBalanceFormSchema.parse(input);
+
+  await adjustGiftCardBalanceRepo(giftCardId, values.amount, values.reason, session.userId);
+
+  revalidatePath("/admin/gift-cards");
+  revalidatePath(`/admin/gift-cards/${giftCardId}`);
 }

@@ -22,6 +22,8 @@ export interface ProductVariant {
   compareAtPrice?: number;
   stock: number;
   isDefault: boolean;
+  /** Falls back to the product's own gallery images when unset. */
+  imageUrl?: string;
 }
 
 export interface ProductReview {
@@ -60,6 +62,8 @@ export interface AdminProductVariantInput {
   compareAtPrice?: number;
   stock: number;
   isDefault: boolean;
+  imageUrl?: string;
+  imageCloudinaryId?: string;
 }
 
 export interface AdminProductImageInput {

@@ -3,8 +3,8 @@
 import { useFormContext } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
-import { BASE_DELIVERY_CHARGE, FREE_DELIVERY_THRESHOLD } from "@/lib/constants";
 import { effectiveSlotCharge, todayIsoIst } from "@/lib/delivery";
+import type { StoreSettings } from "@/features/settings/types";
 import { useCartStore, type CartLineItem, type AppliedCoupon } from "@/stores/cart-store";
 import type { CheckoutValues } from "../validations";
 import type { DeliverySlotOption } from "../types";
@@ -12,16 +12,24 @@ import type { DeliverySlotOption } from "../types";
 interface OrderSummaryProps {
   deliverySlots: DeliverySlotOption[];
   submitting: boolean;
+  storeSettings: StoreSettings;
 }
 
-export function OrderSummary({ deliverySlots, submitting }: OrderSummaryProps) {
+export function OrderSummary({ deliverySlots, submitting, storeSettings }: OrderSummaryProps) {
   const items = useCartStore((state) => state.items);
   const appliedCoupon = useCartStore((state) => state.appliedCoupon);
   const { watch } = useFormContext<CheckoutValues>();
   const selectedSlotId = watch("deliverySlotId");
   const deliveryDate = watch("deliveryDate");
 
-  const totals = computeTotals(items, appliedCoupon, deliverySlots, selectedSlotId, deliveryDate);
+  const totals = computeTotals(
+    items,
+    appliedCoupon,
+    deliverySlots,
+    selectedSlotId,
+    deliveryDate,
+    storeSettings,
+  );
 
   return (
     <div className="border-border sticky top-24 flex h-fit flex-col gap-4 rounded-xs border p-5">
@@ -72,6 +80,7 @@ function computeTotals(
   deliverySlots: DeliverySlotOption[],
   selectedSlotId: string | undefined,
   deliveryDate: string,
+  storeSettings: StoreSettings,
 ) {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const discount = appliedCoupon?.discount ?? 0;
@@ -84,10 +93,14 @@ function computeTotals(
         selectedSlot.type,
         selectedSlot.type === "FIXED" ? todayIsoIst() : deliveryDate,
         selectedSlot.extraCharge,
+        undefined,
+        storeSettings.midnightCutoffHour,
+        storeSettings.midnightCharge,
       )
     : 0;
   const deliveryCharge =
-    (afterDiscount >= FREE_DELIVERY_THRESHOLD ? 0 : BASE_DELIVERY_CHARGE) + slotCharge;
+    (afterDiscount >= storeSettings.freeDeliveryThreshold ? 0 : storeSettings.baseDeliveryCharge) +
+    slotCharge;
   const total = afterDiscount + deliveryCharge;
 
   return { subtotal, discount, deliveryCharge, total };

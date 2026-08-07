@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Menu } from "lucide-react";
-import { mainNav, utilityNav } from "@/config/navigation";
+import { utilityNav, type NavItem } from "@/config/navigation";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/accordion";
 
 /** Drawer nav for < lg screens. Simplified vs. the reference's hover mega-menu — flyouts don't translate to touch. */
-export function MobileNav() {
+export function MobileNav({ items }: { items: NavItem[] }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -30,7 +30,7 @@ export function MobileNav() {
         </SheetHeader>
         <nav className="flex flex-col gap-1 px-4 pb-6">
           <Accordion className="flex flex-col gap-0">
-            {mainNav.map((item) =>
+            {items.map((item) =>
               item.children ? (
                 <AccordionItem key={item.label} value={item.label}>
                   <AccordionTrigger>{item.label}</AccordionTrigger>

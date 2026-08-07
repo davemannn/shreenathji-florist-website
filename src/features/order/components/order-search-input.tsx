@@ -33,6 +33,9 @@ export function OrderSearchInput({ status, search }: { status?: OrderStatus; sea
         aria-hidden="true"
       />
       <Input
+        // See search-input.tsx for why this is keyed — same uncontrolled
+        // Base UI Input remount-on-value-change fix.
+        key={search ?? ""}
         type="search"
         name="search"
         defaultValue={search}

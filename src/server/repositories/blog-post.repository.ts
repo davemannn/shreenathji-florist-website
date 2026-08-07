@@ -33,3 +33,40 @@ export async function findRecentBlogPosts(excludeSlug: string, limit = 3) {
     take: limit,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Admin panel — marketing/content management (Phase 4).
+// ---------------------------------------------------------------------------
+
+export async function listBlogPostsAdmin() {
+  return prisma.blogPost.findMany({ orderBy: { publishedAt: "desc" } });
+}
+
+export async function findBlogPostByIdAdmin(id: string) {
+  return prisma.blogPost.findUnique({ where: { id } });
+}
+
+export interface UpsertBlogPostInput {
+  slug: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  coverImageUrl?: string;
+  coverImageAlt?: string;
+  coverImageCloudinaryId?: string;
+  authorName: string;
+  readTimeMinutes: number;
+  isPublished: boolean;
+}
+
+export async function createBlogPost(input: UpsertBlogPostInput) {
+  return prisma.blogPost.create({ data: input });
+}
+
+export async function updateBlogPost(id: string, input: UpsertBlogPostInput) {
+  return prisma.blogPost.update({ where: { id }, data: input });
+}
+
+export async function deleteBlogPost(id: string) {
+  return prisma.blogPost.delete({ where: { id } });
+}

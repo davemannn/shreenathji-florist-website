@@ -2,17 +2,36 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireAdminSession } from "@/server/auth/require-admin";
-import { listCategoriesAdmin } from "@/features/category/queries";
+import { listCategoriesAdmin, type AdminCategorySort } from "@/features/category/queries";
 import { CategoriesTable } from "@/features/category/components/categories-table";
+import { ReorderCategoriesDialog } from "@/features/category/components/reorder-categories-dialog";
+import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Categories",
 };
 
-export default async function AdminCategoriesPage() {
+const SORT_KEYS: AdminCategorySort[] = ["name", "products", "flags"];
+
+export default async function AdminCategoriesPage({
+  searchParams,
+}: PageProps<"/admin/categories">) {
   await requireAdminSession("categories:manage");
-  const categories = await listCategoriesAdmin();
+
+  const params = await searchParams;
+  const search = typeof params.search === "string" ? params.search : undefined;
+  const rawSort = typeof params.sort === "string" ? params.sort : undefined;
+  const sort = SORT_KEYS.find((key) => key === rawSort);
+  const dir = params.dir === "desc" ? "desc" : "asc";
+
+  const [categories, categoriesInOrder] = await Promise.all([
+    listCategoriesAdmin({ search, sort, dir }),
+    // Always the full, unfiltered catalog in its real sortOrder — reordering
+    // a search-filtered subset would silently drop the rest out of order.
+    search || sort ? listCategoriesAdmin() : Promise.resolve(null),
+  ]);
+  const fullOrderedList = categoriesInOrder ?? categories;
 
   return (
     <div className="flex flex-col gap-6">
@@ -21,13 +40,22 @@ export default async function AdminCategoriesPage() {
           <h1 className="text-2xl font-semibold">Categories</h1>
           <p className="text-muted-foreground text-sm">{categories.length} categories</p>
         </div>
-        <Button variant="brand" nativeButton={false} render={<Link href="/admin/categories/new" />}>
-          <Plus className="size-4" aria-hidden="true" />
-          New Category
-        </Button>
+        <div className="flex items-center gap-2">
+          <ReorderCategoriesDialog categories={fullOrderedList} />
+          <Button
+            variant="brand"
+            nativeButton={false}
+            render={<Link href="/admin/categories/new" />}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            New Category
+          </Button>
+        </div>
       </div>
 
-      <CategoriesTable categories={categories} />
+      <SearchInput basePath="/admin/categories" search={search} placeholder="Search categories…" />
+
+      <CategoriesTable categories={categories} sort={sort} dir={dir} search={search} />
     </div>
   );
 }

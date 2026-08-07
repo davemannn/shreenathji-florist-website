@@ -19,13 +19,13 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model User {
-  id                  String     @id @default(cuid())
+  id                  String               @id @default(cuid())
   name                String
-  email               String     @unique
-  emailVerified       Boolean    @default(false)
+  email               String               @unique
+  emailVerified       Boolean              @default(false)
   image               String?
   role                String?
-  banned              Boolean?   @default(false)
+  banned              Boolean?             @default(false)
   banReason           String?
   banExpires          DateTime?
   // Staff contact info (delivery_guy in particular — a store manager may
@@ -33,16 +33,17 @@ model User {
   phone               String?
   // Starts at 0 — no top-up/redeem flow yet, this is a real (not fake)
   // field the account dashboard reads, ready for a future wallet feature.
-  walletBalance       Int        @default(0)
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  walletBalance       Int                  @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
   sessions            Session[]
   accounts            Account[]
   addresses           Address[]
   orders              Order[]
   giftCards           GiftCard[]
   // Orders assigned to this user when they're staff with the delivery_guy role.
-  deliveryAssignments Order[]    @relation("DeliveryAssignments")
+  deliveryAssignments Order[]              @relation("DeliveryAssignments")
+  giftCardAdjustments GiftCardAdjustment[]
 }
 
 model Session {
@@ -193,16 +194,22 @@ model ProductImage {
 }
 
 model ProductVariant {
-  id             String      @id @default(cuid())
-  productId      String
-  label          String
-  price          Int
-  compareAtPrice Int?
-  stock          Int         @default(0)
-  isDefault      Boolean     @default(false)
-  sortOrder      Int         @default(0)
-  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems     OrderItem[]
+  id                String      @id @default(cuid())
+  productId         String
+  label             String
+  price             Int
+  compareAtPrice    Int?
+  stock             Int         @default(0)
+  isDefault         Boolean     @default(false)
+  sortOrder         Int         @default(0)
+  /// Optional — lets a variant (e.g. "Red roses" vs "White roses") show its
+  /// own photo instead of the product's default image, so switching
+  /// variants on the storefront actually shows what the customer is buying.
+  /// Falls back to the product's own images when unset.
+  imageUrl          String?
+  imageCloudinaryId String?
+  product           Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems        OrderItem[]
 
   @@index([productId])
 }
@@ -398,6 +405,46 @@ model GiftCard {
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
   purchaser         User                  @relation(fields: [purchaserId], references: [id])
+  adjustments       GiftCardAdjustment[]
 
   @@index([purchaserId])
+}
+
+/// Audit trail for manual balance changes (Super Admin only — real money).
+/// Every manual issue/adjustment writes one of these alongside mutating
+/// GiftCard.balance, so "who changed this and why" is always answerable.
+model GiftCardAdjustment {
+  id               String   @id @default(cuid())
+  giftCardId       String
+  /// Signed — positive credits the balance, negative debits it.
+  amount           Int
+  reason           String
+  adjustedByUserId String
+  createdAt        DateTime @default(now())
+  giftCard         GiftCard @relation(fields: [giftCardId], references: [id], onDelete: Cascade)
+  adjustedBy       User     @relation(fields: [adjustedByUserId], references: [id])
+
+  @@index([giftCardId])
+}
+
+/// Single-row site configuration (id is always the fixed string below —
+/// there's only ever one row). Seeded with today's hardcoded defaults on
+/// first read via an upsert (see store-settings.repository.ts), so there's
+/// no manual seed step and no migration-ordering hazard. settings:manage
+/// (super_admin/admin) can edit; settings:view (store_manager too) is
+/// read-only — see permissions.ts.
+model StoreSettings {
+  id                    String   @id @default("singleton")
+  /// ₹, flat — added to every order unless the subtotal clears freeDeliveryThreshold.
+  baseDeliveryCharge    Int      @default(49)
+  freeDeliveryThreshold Int      @default(999)
+  /// IST 24h hour after which same-day Midnight-slot booking closes and
+  /// Express/Instant starts carrying Midnight pricing instead.
+  midnightCutoffHour    Int      @default(20)
+  /// ₹ — shown on the Same Day Delivery marketing page.
+  expressCharge         Int      @default(99)
+  /// ₹ — the Midnight slot's own surcharge, and what Express carries once
+  /// booked same-day past midnightCutoffHour.
+  midnightCharge        Int      @default(199)
+  updatedAt             DateTime @updatedAt
 }

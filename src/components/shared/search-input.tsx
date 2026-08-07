@@ -43,6 +43,13 @@ export function SearchInput({ basePath, search, placeholder, extraParams }: Sear
         aria-hidden="true"
       />
       <Input
+        // Remounts whenever the URL's search value changes (e.g. after
+        // submitting a new query, or browser back/forward) instead of
+        // mutating an already-mounted uncontrolled field's initial value —
+        // Base UI's Input warns on that ("changing the default value state
+        // of an uncontrolled FieldControl after being initialized"), and it
+        // also silently failed to resync the displayed text on back/forward.
+        key={search ?? ""}
         type="search"
         name="search"
         defaultValue={search}

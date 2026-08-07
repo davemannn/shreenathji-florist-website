@@ -1,10 +1,12 @@
 import {
+  findBlogPostByIdAdmin,
   findBlogPostBySlug,
   findRecentBlogPosts,
+  listBlogPostsAdmin as listBlogPostsAdminRepo,
   listPublishedBlogPosts as listPublishedBlogPostsRepo,
   type ListBlogPostsParams,
 } from "@/server/repositories/blog-post.repository";
-import type { BlogPostDetail, BlogPostSummary } from "./types";
+import type { AdminBlogPost, BlogPostDetail, BlogPostSummary } from "./types";
 
 type BlogPostRow = Awaited<ReturnType<typeof findRecentBlogPosts>>[number];
 type BlogPostWithContent = NonNullable<Awaited<ReturnType<typeof findBlogPostBySlug>>>;
@@ -52,4 +54,37 @@ export async function getRecentBlogPosts(
 ): Promise<BlogPostSummary[]> {
   const posts = await findRecentBlogPosts(excludeSlug, limit);
   return posts.map(toSummary);
+}
+
+// ---------------------------------------------------------------------------
+// Admin panel — marketing/content management (Phase 4).
+// ---------------------------------------------------------------------------
+
+function toAdminPost(
+  post: NonNullable<Awaited<ReturnType<typeof findBlogPostByIdAdmin>>>,
+): AdminBlogPost {
+  return {
+    id: post.id,
+    slug: post.slug,
+    title: post.title,
+    excerpt: post.excerpt,
+    content: post.content,
+    coverImageUrl: post.coverImageUrl ?? undefined,
+    coverImageAlt: post.coverImageAlt ?? undefined,
+    coverImageCloudinaryId: post.coverImageCloudinaryId ?? undefined,
+    authorName: post.authorName,
+    readTimeMinutes: post.readTimeMinutes,
+    isPublished: post.isPublished,
+    publishedAt: post.publishedAt.toISOString(),
+  };
+}
+
+export async function listBlogPostsAdmin(): Promise<AdminBlogPost[]> {
+  const posts = await listBlogPostsAdminRepo();
+  return posts.map(toAdminPost);
+}
+
+export async function getBlogPostForEdit(id: string): Promise<AdminBlogPost | null> {
+  const post = await findBlogPostByIdAdmin(id);
+  return post ? toAdminPost(post) : null;
 }

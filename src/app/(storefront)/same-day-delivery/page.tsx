@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Zap, Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
-import { EXPRESS_CHARGE, MIDNIGHT_CUTOFF_HOUR } from "@/lib/delivery";
+import { getStoreSettings } from "@/features/settings/queries";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
@@ -12,10 +12,11 @@ export const metadata: Metadata = {
     "Order before the cutoff and get flowers, cakes & gifts delivered the same day, anywhere across Vadodara.",
 };
 
-const cutoff12h =
-  MIDNIGHT_CUTOFF_HOUR > 12 ? `${MIDNIGHT_CUTOFF_HOUR - 12} PM` : `${MIDNIGHT_CUTOFF_HOUR} AM`;
+export default async function SameDayDeliveryPage() {
+  const { expressCharge, midnightCutoffHour } = await getStoreSettings();
+  const cutoff12h =
+    midnightCutoffHour > 12 ? `${midnightCutoffHour - 12} PM` : `${midnightCutoffHour} AM`;
 
-export default function SameDayDeliveryPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 md:px-6 lg:px-8">
       <div className="mb-10 text-center">
@@ -40,7 +41,7 @@ export default function SameDayDeliveryPage() {
         </div>
         <div className="border-border rounded-xs border p-5 text-center">
           <Zap className="text-brand mx-auto size-6" aria-hidden="true" />
-          <p className="mt-3 font-medium">{formatINR(EXPRESS_CHARGE)} Flat Fee</p>
+          <p className="mt-3 font-medium">{formatINR(expressCharge)} Flat Fee</p>
           <p className="text-muted-foreground mt-1 text-sm">
             One flat charge — no surprises at checkout. (Ordering after {cutoff12h}? It&apos;s
             priced the same as Midnight Delivery, since that&apos;s realistically when it&apos;ll

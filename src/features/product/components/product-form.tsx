@@ -8,12 +8,14 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   Form,
   FormField,
   FormItem,
   FormLabel,
   FormControl,
+  FormDescription,
   FormMessage,
 } from "@/components/ui/form";
 import {
@@ -24,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CloudinaryUploader } from "@/components/shared/cloudinary-uploader";
+import { MultiSelectCombobox } from "@/components/shared/multi-select-combobox";
 import { createProductAction, updateProductAction } from "../actions";
 import { productFormSchema, type ProductFormInput, type ProductFormValues } from "../validations";
 import type { AdminProductDetail } from "../types";
@@ -32,6 +35,12 @@ interface CategoryOption {
   id: string;
   name: string;
 }
+
+const FLAG_CAPTIONS: Record<"isActive" | "isBestSeller" | "isFeatured", string> = {
+  isActive: "Visible in the shop. Turn off to hide without deleting it.",
+  isBestSeller: "Includes this product in the homepage “Best Sellers” row.",
+  isFeatured: "Reserved for a future homepage section — not shown anywhere on the storefront yet.",
+};
 
 interface ProductFormProps {
   categories: CategoryOption[];
@@ -90,15 +99,6 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't save this product.");
     }
-  }
-
-  function toggleCategory(categoryId: string, checked: boolean) {
-    const current = getValues("categoryIds");
-    setValue(
-      "categoryIds",
-      checked ? [...current, categoryId] : current.filter((id) => id !== categoryId),
-      { shouldValidate: true },
-    );
   }
 
   function setDefaultVariant(index: number) {
@@ -182,42 +182,47 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                   ))}
                 </SelectContent>
               </Select>
+              <FormDescription>
+                A small ribbon shown on the product image in the shop — purely visual, doesn&rsquo;t
+                affect where the product appears.
+              </FormDescription>
             </FormItem>
           )}
         />
 
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-col gap-3">
           {(["isActive", "isBestSeller", "isFeatured"] as const).map((name) => (
             <FormField
               key={name}
               control={form.control}
               name={name}
               render={({ field }) => (
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                  {name === "isActive"
-                    ? "Active"
-                    : name === "isBestSeller"
-                      ? "Best seller"
-                      : "Featured"}
-                </label>
+                <div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    {name === "isActive"
+                      ? "Active"
+                      : name === "isBestSeller"
+                        ? "Best seller"
+                        : "Featured"}
+                  </label>
+                  <p className="text-muted-foreground pl-6 text-xs">{FLAG_CAPTIONS[name]}</p>
+                </div>
               )}
             />
           ))}
         </div>
 
         <div>
-          <FormLabel>Categories</FormLabel>
-          <div className="mt-2 flex flex-wrap gap-4">
-            {categories.map((category) => (
-              <label key={category.id} className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={watchedCategoryIds.includes(category.id)}
-                  onCheckedChange={(checked) => toggleCategory(category.id, checked === true)}
-                />
-                {category.name}
-              </label>
-            ))}
+          <Label>Categories</Label>
+          <div className="mt-2">
+            <MultiSelectCombobox
+              options={categories.map((category) => ({ value: category.id, label: category.name }))}
+              value={watchedCategoryIds}
+              onChange={(next) => setValue("categoryIds", next, { shouldValidate: true })}
+              placeholder="Search categories…"
+              emptyMessage="No categories match."
+            />
           </div>
           {form.formState.errors.categoryIds ? (
             <p className="text-destructive mt-1 text-xs">
@@ -228,7 +233,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <FormLabel>Variants</FormLabel>
+            <Label>Variants</Label>
             <Button
               type="button"
               variant="outline"
@@ -241,87 +246,108 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               Add Variant
             </Button>
           </div>
+          <p className="text-muted-foreground mb-2 text-xs">
+            Give a variant its own photo when it looks noticeably different (e.g. a color or size
+            option) — customers see it swap in when they pick that option. Variants without one fall
+            back to the product photos below.
+          </p>
           <div className="flex flex-col gap-3">
             {variantFields.fields.map((field, index) => (
               <div
                 key={field.id}
-                className="border-border grid grid-cols-12 items-end gap-2 rounded-xs border p-3"
+                className="border-border flex items-end gap-3 rounded-xs border p-3"
               >
-                <div className="col-span-4">
-                  <FormField
-                    control={form.control}
-                    name={`variants.${index}.label`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Label</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Medium (12 roses)" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <FormField
-                    control={form.control}
-                    name={`variants.${index}.price`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Price</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} value={field.value as number} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <FormField
-                    control={form.control}
-                    name={`variants.${index}.compareAtPrice`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Compare-at</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} value={(field.value as number) ?? ""} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <FormField
-                    control={form.control}
-                    name={`variants.${index}.stock`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Stock</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} value={field.value as number} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="col-span-1 flex items-center justify-center pb-1.5">
-                  <label className="flex flex-col items-center gap-1 text-[10px]">
-                    Default
-                    <Checkbox
-                      checked={watchedVariants[index]?.isDefault ?? false}
-                      onCheckedChange={() => setDefaultVariant(index)}
+                <CloudinaryUploader
+                  folder="products"
+                  value={watchedVariants[index]?.imageUrl}
+                  thumbnailClassName="size-16"
+                  triggerLabel="Photo"
+                  onChange={(url, cloudinaryId) => {
+                    setValue(`variants.${index}.imageUrl`, url);
+                    setValue(`variants.${index}.imageCloudinaryId`, cloudinaryId);
+                  }}
+                  onRemove={() => {
+                    setValue(`variants.${index}.imageUrl`, "");
+                    setValue(`variants.${index}.imageCloudinaryId`, "");
+                  }}
+                />
+                <div className="grid flex-1 grid-cols-12 items-end gap-2">
+                  <div className="col-span-4">
+                    <FormField
+                      control={form.control}
+                      name={`variants.${index}.label`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Label</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="Medium (12 roses)" />
+                          </FormControl>
+                        </FormItem>
+                      )}
                     />
-                  </label>
-                </div>
-                <div className="col-span-1 flex justify-end pb-1.5">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={variantFields.fields.length === 1}
-                    onClick={() => variantFields.remove(index)}
-                  >
-                    <Trash2 className="size-3.5" aria-hidden="true" />
-                  </Button>
+                  </div>
+                  <div className="col-span-2">
+                    <FormField
+                      control={form.control}
+                      name={`variants.${index}.price`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Price</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} value={field.value as number} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <FormField
+                      control={form.control}
+                      name={`variants.${index}.compareAtPrice`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Compare-at</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} value={(field.value as number) ?? ""} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <FormField
+                      control={form.control}
+                      name={`variants.${index}.stock`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs">Stock</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} value={field.value as number} />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="col-span-1 flex items-center justify-center pb-1.5">
+                    <label className="flex flex-col items-center gap-1 text-[10px]">
+                      Default
+                      <Checkbox
+                        checked={watchedVariants[index]?.isDefault ?? false}
+                        onCheckedChange={() => setDefaultVariant(index)}
+                      />
+                    </label>
+                  </div>
+                  <div className="col-span-1 flex justify-end pb-1.5">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={variantFields.fields.length === 1}
+                      onClick={() => variantFields.remove(index)}
+                    >
+                      <Trash2 className="size-3.5" aria-hidden="true" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -335,7 +361,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <FormLabel>Images</FormLabel>
+            <Label>Images</Label>
             <Button
               type="button"
               variant="outline"

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Moon, Clock, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
-import { MIDNIGHT_CHARGE, MIDNIGHT_CUTOFF_HOUR } from "@/lib/delivery";
+import { getStoreSettings } from "@/features/settings/queries";
 
 export const metadata: Metadata = {
   title: "Midnight Delivery",
@@ -11,10 +11,11 @@ export const metadata: Metadata = {
     "Be the first to wish someone on their birthday or anniversary — midnight delivery between 11:30 PM and 12:30 AM.",
 };
 
-const cutoff12h =
-  MIDNIGHT_CUTOFF_HOUR > 12 ? `${MIDNIGHT_CUTOFF_HOUR - 12} PM` : `${MIDNIGHT_CUTOFF_HOUR} AM`;
+export default async function MidnightDeliveryPage() {
+  const { midnightCharge, midnightCutoffHour } = await getStoreSettings();
+  const cutoff12h =
+    midnightCutoffHour > 12 ? `${midnightCutoffHour - 12} PM` : `${midnightCutoffHour} AM`;
 
-export default function MidnightDeliveryPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 md:px-6 lg:px-8">
       <div className="mb-10 text-center">
@@ -40,7 +41,7 @@ export default function MidnightDeliveryPage() {
         </div>
         <div className="border-border rounded-xs border p-5 text-center">
           <Moon className="text-brand mx-auto size-6" aria-hidden="true" />
-          <p className="mt-3 font-medium">{formatINR(MIDNIGHT_CHARGE)} Flat Fee</p>
+          <p className="mt-3 font-medium">{formatINR(midnightCharge)} Flat Fee</p>
           <p className="text-muted-foreground mt-1 text-sm">
             One flat charge covers the special-hours delivery, whichever date you choose.
           </p>

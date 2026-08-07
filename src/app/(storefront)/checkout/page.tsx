@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/server/auth/config";
 import { listAddressesForUser } from "@/server/repositories/address.repository";
 import { listActiveDeliverySlots } from "@/server/repositories/delivery-slot.repository";
+import { getStoreSettings } from "@/features/settings/queries";
 import { CheckoutForm } from "@/features/checkout/components/checkout-form";
 
 export const metadata: Metadata = {
@@ -16,9 +17,10 @@ export default async function CheckoutPage() {
     redirect("/sign-in?redirectTo=/checkout");
   }
 
-  const [addressRows, slotRows] = await Promise.all([
+  const [addressRows, slotRows, storeSettings] = await Promise.all([
     listAddressesForUser(session.user.id),
     listActiveDeliverySlots(),
+    getStoreSettings(),
   ]);
 
   const addresses = addressRows.map((address) => ({
@@ -44,7 +46,11 @@ export default async function CheckoutPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 lg:px-8">
       <h1 className="mb-8 text-3xl md:text-4xl">Checkout</h1>
-      <CheckoutForm addresses={addresses} deliverySlots={deliverySlots} />
+      <CheckoutForm
+        addresses={addresses}
+        deliverySlots={deliverySlots}
+        storeSettings={storeSettings}
+      />
     </div>
   );
 }
