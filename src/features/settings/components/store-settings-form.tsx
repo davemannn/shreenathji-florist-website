@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
   Form,
@@ -255,10 +256,10 @@ export function StoreSettingsForm({
             )}
           />
         </div>
-        <FormDescription className="-mt-2">
+        <p className="text-muted-foreground -mt-2 text-xs">
           Compared against each order&rsquo;s delivery state to decide CGST+SGST (same state) vs.
           IGST (different state) on invoices.
-        </FormDescription>
+        </p>
 
         <div className="grid grid-cols-2 gap-4">
           <FormField
@@ -297,6 +298,49 @@ export function StoreSettingsForm({
               </FormItem>
             )}
           />
+        </div>
+
+        <Separator className="my-2" />
+        <div>
+          <h2 className="text-sm font-semibold">Payment Methods</h2>
+          <p className="text-muted-foreground text-xs">
+            Which methods customers can choose at checkout. Credentials stay in server config — this
+            only toggles availability.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <FormField
+            control={form.control}
+            name="codEnabled"
+            render={({ field }) => (
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={readOnly}
+                />
+                Cash on Delivery
+              </label>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="razorpayEnabled"
+            render={({ field }) => (
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={readOnly}
+                />
+                Razorpay (UPI, cards, netbanking)
+              </label>
+            )}
+          />
+          {form.formState.errors.codEnabled ? (
+            <p className="text-destructive text-xs">{form.formState.errors.codEnabled.message}</p>
+          ) : null}
         </div>
 
         {!readOnly ? (

@@ -33,3 +33,21 @@ export interface FinancialDashboard {
   avgOrderValue: number;
   topProducts: TopProductRow[];
 }
+
+export interface ActivityItem {
+  id: string;
+  entityType: string;
+  entityLabel: string;
+  action: string;
+  summary: string;
+  changedByName: string;
+  createdAt: string;
+}
+
+export interface GlobalSearchResult {
+  type: "order" | "customer" | "product";
+  id: string;
+  title: string;
+  subtitle: string;
+  href: string;
+}

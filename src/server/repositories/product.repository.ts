@@ -247,3 +247,71 @@ export async function findProductsTaxInfo(productIds: string[]) {
   });
   return new Map(rows.map((row) => [row.id, row.categories.map((pc) => pc.category)]));
 }
+
+// ---------------------------------------------------------------------------
+// Bulk import/export — see features/product/import.ts for the file parsing.
+// ---------------------------------------------------------------------------
+
+/** Every product+variant, flattened one row per variant — the shape both the .xlsx/.csv export and the round-trip import expect. */
+export async function listProductVariantRowsForExport() {
+  const products = await prisma.product.findMany({
+    include: {
+      variants: { orderBy: { sortOrder: "asc" } },
+      categories: { include: { category: { select: { name: true } } } },
+    },
+    orderBy: { title: "asc" },
+  });
+
+  return products.flatMap((product) =>
+    product.variants.map((variant) => ({
+      slug: product.slug,
+      title: product.title,
+      variantLabel: variant.label,
+      price: variant.price,
+      compareAtPrice: variant.compareAtPrice ?? "",
+      stock: variant.stock,
+      isActive: product.isActive,
+      categories: product.categories.map((pc) => pc.category.name).join("; "),
+    })),
+  );
+}
+
+/** Fetches only what a bulk-import needs to resolve slug+label → variant id, for a specific set of slugs. */
+export async function findProductsForImport(slugs: string[]) {
+  return prisma.product.findMany({
+    where: { slug: { in: slugs } },
+    select: {
+      id: true,
+      slug: true,
+      isActive: true,
+      variants: { select: { id: true, label: true } },
+    },
+  });
+}
+
+export interface ProductImportVariantUpdate {
+  variantId: string;
+  price?: number;
+  compareAtPrice?: number;
+  stock?: number;
+}
+
+export interface ProductImportApply {
+  variantUpdates: ProductImportVariantUpdate[];
+  productActiveUpdates: { productId: string; isActive: boolean }[];
+}
+
+/** Applies every resolved row in one transaction — either the whole batch lands or none of it does, so a mid-import failure can't leave the catalog half-updated. */
+export async function applyProductImport({
+  variantUpdates,
+  productActiveUpdates,
+}: ProductImportApply) {
+  await prisma.$transaction([
+    ...variantUpdates.map(({ variantId, ...data }) =>
+      prisma.productVariant.update({ where: { id: variantId }, data }),
+    ),
+    ...productActiveUpdates.map(({ productId, isActive }) =>
+      prisma.product.update({ where: { id: productId }, data: { isActive } }),
+    ),
+  ]);
+}

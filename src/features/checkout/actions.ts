@@ -15,6 +15,11 @@ import {
   markOrderPaid,
 } from "@/server/repositories/order.repository";
 import { createAddress } from "@/server/repositories/address.repository";
+import { sendEmail, STORE_INBOX } from "@/server/email/mailer";
+import { OrderConfirmationEmail } from "@/emails/order-confirmation-email";
+import { AdminNewOrderAlertEmail } from "@/emails/admin-new-order-alert-email";
+import { getStoreSettings } from "@/features/settings/queries";
+import { siteConfig } from "@/config/site";
 
 interface PlaceOrderActionInput {
   items: CartLineItemInput[];
@@ -42,8 +47,105 @@ async function requireUserId(): Promise<string> {
   return session.user.id;
 }
 
+async function requireSessionUser(): Promise<{ id: string; email: string; name: string }> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) {
+    throw new Error("You must be signed in to place an order.");
+  }
+  return { id: session.user.id, email: session.user.email, name: session.user.name };
+}
+
+interface OrderConfirmationEmailOrder {
+  id: string;
+  orderNumber: string;
+  total: number;
+  paymentMethod: "COD" | "RAZORPAY";
+  deliveryDate: Date;
+  deliveryLine1: string;
+  deliveryLine2: string | null;
+  deliveryCity: string;
+  deliveryState: string;
+  deliveryPincode: string;
+  deliverySlot: { label: string } | null;
+  items: {
+    productTitle: string;
+    variantLabel: string | null;
+    quantity: number;
+    lineTotal: number;
+  }[];
+}
+
+/**
+ * Shared by both the COD and Razorpay confirmation paths below — best-
+ * effort (the order itself already succeeded either way, so a failed/
+ * unconfigured email send shouldn't surface as a checkout error), matching
+ * the existing gift-card email's non-fatal try/catch pattern.
+ */
+async function sendOrderConfirmationEmail(
+  order: OrderConfirmationEmailOrder,
+  customer: { email: string; name: string },
+) {
+  try {
+    const settings = await getStoreSettings();
+    await sendEmail({
+      to: customer.email,
+      subject: `Order ${order.orderNumber} confirmed — Shreenathji Florist`,
+      react: OrderConfirmationEmail({
+        customerName: customer.name,
+        orderNumber: order.orderNumber,
+        items: order.items.map((item) => ({
+          productTitle: item.productTitle,
+          variantLabel: item.variantLabel ?? undefined,
+          quantity: item.quantity,
+          lineTotal: item.lineTotal,
+        })),
+        deliveryDate: order.deliveryDate.toISOString(),
+        deliverySlotLabel: order.deliverySlot?.label,
+        deliveryAddress: [
+          order.deliveryLine1,
+          order.deliveryLine2,
+          order.deliveryCity,
+          order.deliveryState,
+          order.deliveryPincode,
+        ]
+          .filter(Boolean)
+          .join(", "),
+        total: order.total,
+        paymentMethod: order.paymentMethod,
+        invoiceUrl: `${siteConfig.url}/invoice/${order.orderNumber}`,
+        storeAddressLine: settings.registeredAddressLine,
+        storeCity: settings.registeredCity,
+        storePincode: settings.registeredPincode,
+      }),
+    });
+  } catch {
+    // Email isn't configured, or the send failed — not fatal to the order.
+  }
+
+  // Admin alert — the email equivalent of the in-app dashboard chime
+  // (use-order-notifications.ts), for whenever nobody has an admin tab
+  // open. Independent try/catch: a failure here should never affect
+  // whether the customer's own confirmation email above went out.
+  try {
+    await sendEmail({
+      to: STORE_INBOX,
+      subject: `New order ${order.orderNumber} — ${customer.name}`,
+      react: AdminNewOrderAlertEmail({
+        orderNumber: order.orderNumber,
+        customerName: customer.name,
+        total: order.total,
+        paymentMethod: order.paymentMethod,
+        orderUrl: `${siteConfig.url}/admin/orders/${order.id}`,
+      }),
+    });
+  } catch {
+    // Same as above — not fatal to the order.
+  }
+}
+
 export async function placeOrderAction(input: PlaceOrderActionInput) {
-  const userId = await requireUserId();
+  const user = await requireSessionUser();
+  const userId = user.id;
 
   if (input.items.length === 0) {
     throw new Error("Your cart is empty.");
@@ -99,6 +201,7 @@ export async function placeOrderAction(input: PlaceOrderActionInput) {
   // confirmed immediately (payment is still collected on delivery, so
   // paymentStatus stays PENDING).
   await markOrderConfirmedCod(order.id);
+  await sendOrderConfirmationEmail(order, user);
 
   return { orderId: order.id, orderNumber: order.orderNumber, razorpay: null };
 }
@@ -131,6 +234,7 @@ export async function verifyRazorpayPaymentAction(input: VerifyPaymentActionInpu
   }
 
   await markOrderPaid(order.id, input.razorpayPaymentId);
+  await sendOrderConfirmationEmail(order, order.user);
 
   return { orderNumber: order.orderNumber };
 }

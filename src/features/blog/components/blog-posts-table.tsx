@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Pencil, Trash2 } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -16,7 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ContentImage } from "@/components/shared/content-image";
-import { deleteBlogPostAction } from "../actions";
+import { deleteBlogPostAction, setBlogPostPublishedAction } from "../actions";
 import type { AdminBlogPost } from "../types";
 
 function formatDate(iso: string): string {
@@ -31,8 +31,21 @@ export function BlogPostsTable({ posts }: { posts: AdminBlogPost[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  function handleTogglePublished(post: AdminBlogPost) {
+    startTransition(async () => {
+      try {
+        await setBlogPostPublishedAction(post.id, !post.isPublished);
+        toast.success(post.isPublished ? "Post unpublished." : "Post published.");
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Couldn't update this post.");
+      }
+    });
+  }
+
   function handleDelete(post: AdminBlogPost) {
-    if (!window.confirm(`Delete "${post.title}"? This can't be undone.`)) return;
+    if (!window.confirm(`Permanently delete "${post.title}"? Consider unpublishing instead.`))
+      return;
     startTransition(async () => {
       try {
         await deleteBlogPostAction(post.id);
@@ -99,13 +112,26 @@ export function BlogPostsTable({ posts }: { posts: AdminBlogPost[] }) {
                   Edit
                 </Button>
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   size="sm"
                   disabled={isPending}
+                  onClick={() => handleTogglePublished(post)}
+                >
+                  {post.isPublished ? (
+                    <EyeOff className="size-3.5" aria-hidden="true" />
+                  ) : (
+                    <Eye className="size-3.5" aria-hidden="true" />
+                  )}
+                  {post.isPublished ? "Unpublish" : "Publish"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={isPending}
                   onClick={() => handleDelete(post)}
+                  aria-label={`Permanently delete ${post.title}`}
                 >
                   <Trash2 className="size-3.5" aria-hidden="true" />
-                  Delete
                 </Button>
               </div>
             </TableCell>

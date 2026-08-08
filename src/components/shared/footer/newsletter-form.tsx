@@ -2,17 +2,15 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-
-const newsletterSchema = z.object({
-  email: z.email("Enter a valid email address"),
-});
-
-type NewsletterValues = z.infer<typeof newsletterSchema>;
+import { subscribeToNewsletterAction } from "@/features/newsletter/actions";
+import {
+  newsletterSubscribeSchema,
+  type NewsletterSubscribeValues,
+} from "@/features/newsletter/validations";
 
 // shadcn's registered `form` component has no implementation yet for the
 // "base-nova" style (empty registry stub) — this wires react-hook-form + zod
@@ -23,17 +21,19 @@ export function NewsletterForm() {
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<NewsletterValues>({
-    resolver: zodResolver(newsletterSchema),
+  } = useForm<NewsletterSubscribeValues>({
+    resolver: zodResolver(newsletterSubscribeSchema),
     defaultValues: { email: "" },
   });
 
-  async function onSubmit() {
-    // TODO(email-milestone): wire to Resend / a real subscriber list.
-    // Simulated for now so the interaction is provable end to end.
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    toast.success("Thanks for subscribing!");
-    reset();
+  async function onSubmit(values: NewsletterSubscribeValues) {
+    try {
+      await subscribeToNewsletterAction(values);
+      toast.success("Almost there — check your inbox to confirm.");
+      reset();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't subscribe right now.");
+    }
   }
 
   return (

@@ -30,6 +30,8 @@ export interface UpdateStoreSettingsInput {
   registeredPincode?: string | null;
   defaultGstRate: number;
   invoicePrefix: string;
+  codEnabled: boolean;
+  razorpayEnabled: boolean;
 }
 
 export async function updateStoreSettings(input: UpdateStoreSettingsInput) {

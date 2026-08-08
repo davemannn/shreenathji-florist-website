@@ -59,17 +59,30 @@ export function isPastMidnightCutoff(
   return now.getUTCHours() >= cutoffHour;
 }
 
+export interface HolidayInfo {
+  dateIso: string;
+  /** true = closed entirely that day; false = only Midnight is blocked (see Holiday.blocksAllDelivery in schema.prisma). */
+  blocksAllDelivery: boolean;
+}
+
 /** Whether a given slot type can be booked for the given delivery date. */
 export function isSlotAvailable(
   type: DeliverySlotType,
   dateIso: string,
   now: Date = nowInIst(),
   cutoffHour: number = MIDNIGHT_CUTOFF_HOUR,
+  holidays: HolidayInfo[] = [],
 ): boolean {
+  const holiday = holidays.find((h) => h.dateIso === dateIso);
+  if (holiday?.blocksAllDelivery) return false; // fully closed — no slot type bookable
+
   const sameDay = isSameDayIst(dateIso, now);
   if (type === "NORMAL") return !sameDay; // Standard: next day onward only
-  if (type === "MIDNIGHT") return !sameDay || !isPastMidnightCutoff(now, cutoffHour); // today: only before cutoff
-  return true; // FIXED (Express/Instant): always available
+  if (type === "MIDNIGHT") {
+    if (holiday) return false; // any holiday entry on this date blocks Midnight specifically
+    return !sameDay || !isPastMidnightCutoff(now, cutoffHour); // today: only before cutoff
+  }
+  return true; // FIXED (Express/Instant): always available (unless fully closed, handled above)
 }
 
 /**

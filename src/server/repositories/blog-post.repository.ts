@@ -67,6 +67,10 @@ export async function updateBlogPost(id: string, input: UpsertBlogPostInput) {
   return prisma.blogPost.update({ where: { id }, data: input });
 }
 
+export async function setBlogPostPublished(id: string, isPublished: boolean) {
+  return prisma.blogPost.update({ where: { id }, data: { isPublished } });
+}
+
 export async function deleteBlogPost(id: string) {
   return prisma.blogPost.delete({ where: { id } });
 }

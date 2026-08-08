@@ -34,6 +34,12 @@ model User {
   // Starts at 0 — no top-up/redeem flow yet, this is a real (not fake)
   // field the account dashboard reads, ready for a future wallet feature.
   walletBalance       Int                  @default(0)
+  // Opt-out for the admin bulk/marketing sender's segment-targeted sends
+  // (features/marketing-email) — separate from NewsletterSubscriber, since
+  // being a customer implies a different (narrower, existing-relationship)
+  // consent basis than explicitly opting into the newsletter. Order/OTP/
+  // account emails are unaffected by this — it only gates marketing sends.
+  marketingOptOut     Boolean              @default(false)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   sessions            Session[]
@@ -44,6 +50,8 @@ model User {
   // Orders assigned to this user when they're staff with the delivery_guy role.
   deliveryAssignments Order[]              @relation("DeliveryAssignments")
   giftCardAdjustments GiftCardAdjustment[]
+  cartSnapshot        CartSnapshot?
+  tags                CustomerTag[]
 }
 
 model Session {
@@ -148,6 +156,11 @@ model Category {
   imageCloudinaryId String?
   isOccasion        Boolean           @default(false)
   isFeatured        Boolean           @default(false)
+  /// Hides this category from the storefront (nav + shop pages) without
+  /// deleting it — unlike hard delete, doesn't require reassigning its
+  /// products first. Hard delete (category.repository.ts's deleteCategory)
+  /// still exists for genuinely-unused categories.
+  isArchived        Boolean           @default(false)
   sortOrder         Int               @default(0)
   /// GST% for products in this category (e.g. 0 for fresh flowers, 18 for
   /// chocolates) — null means "not set yet", falls back to
@@ -516,5 +529,159 @@ model StoreSettings {
   /// in, so the counter can detect a new year and reset.
   lastInvoiceFY         String?
 
+  // --- Payment gateways — which methods are offered at checkout. Actual
+  // credentials stay in .env (never admin-editable text fields); this only
+  // toggles availability. ---
+  codEnabled      Boolean @default(true)
+  razorpayEnabled Boolean @default(true)
+
   updatedAt DateTime @updatedAt
+}
+
+/// General-purpose audit trail — every admin mutation that changes
+/// something meaningful (price, stock, catalog structure, settings...)
+/// writes one of these. Order status changes and gift card balance changes
+/// already have their own purpose-built history tables (OrderStatusHistory,
+/// GiftCardAdjustment) and aren't duplicated here. Powers both a dedicated
+/// /admin/audit-log page and the dashboard's Activity Feed (just the most
+/// recent rows).
+model AuditLog {
+  id              String   @id @default(cuid())
+  /// "Product" | "Category" | "Coupon" | "DeliverySlot" | "BlogPost" | "StoreSettings" | "Banner" | "Holiday" | "Customer" | "CartSnapshot" | "EmailCampaign"
+  entityType      String
+  entityId        String
+  entityLabel     String
+  /// "created" | "updated" | "archived" | "restored" | "deleted"
+  action          String
+  /// Human-readable summary shown in the Activity Feed, e.g. "Changed price from ₹499 to ₹549".
+  summary         String
+  changedByUserId String
+  changedByName   String
+  changedByRole   String
+  createdAt       DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+/// Dates delivery is unavailable — checked alongside the existing
+/// cutoff-hour logic in lib/delivery.ts. A festival/holiday closure, not a
+/// per-slot-type rule (blocksAllDelivery: false means only Midnight is
+/// blocked — the common case of "closed at night, open in the day").
+model Holiday {
+  id                String   @id @default(cuid())
+  date              DateTime @db.Date
+  label             String
+  blocksAllDelivery Boolean  @default(true)
+
+  @@unique([date])
+}
+
+enum BannerType {
+  HERO
+  PROMO
+  OCCASION
+}
+
+/// Replaces the hardcoded homepage-content fixtures — HERO (hero slider),
+/// PROMO (promo strip), OCCASION (occasion banner). Read fresh on every
+/// page render, so a startsAt/endsAt window is "automatic" activation with
+/// no cron job needed — the query itself only returns what's live right now.
+model Banner {
+  id                String     @id @default(cuid())
+  type              BannerType
+  eyebrow           String?
+  headline          String
+  subtitle          String?
+  ctaLabel          String?
+  ctaHref           String?
+  imageUrl          String?
+  imageAlt          String?
+  imageCloudinaryId String?
+  isActive          Boolean    @default(true)
+  /// Null = no scheduled window — active whenever isActive is true.
+  startsAt          DateTime?
+  endsAt            DateTime?
+  sortOrder         Int        @default(0)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+}
+
+/// Server-side mirror of a signed-in user's cart, synced from the client
+/// cart store — lets the admin see and recover abandoned carts. One row per
+/// user; cleared (not deleted) on checkout. Guest/anonymous carts aren't
+/// tracked — there's no durable identity to recover them against.
+model CartSnapshot {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  items          Json
+  itemCount      Int       @default(0)
+  subtotal       Int       @default(0)
+  updatedAt      DateTime  @updatedAt
+  /// Set when a recovery email is sent, so the same abandoned cart isn't re-emailed repeatedly.
+  reminderSentAt DateTime?
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Manual marketing tags an admin assigns to a customer (e.g. "Wedding
+/// season lead") — separate from the computed segments (VIP/Frequent/
+/// Inactive), which are derived live from order history, not stored.
+model CustomerTag {
+  id        String   @id @default(cuid())
+  userId    String
+  label     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, label])
+  @@index([userId])
+}
+
+/// Every Cloudinary upload made through the admin panel is recorded here
+/// (see cloudinary-uploader.tsx's onSuccess), so it can be browsed and
+/// reused across products/categories/blog/banners via the media library
+/// picker instead of every field needing a fresh upload.
+model MediaAsset {
+  id               String   @id @default(cuid())
+  url              String
+  cloudinaryId     String
+  alt              String?
+  /// "products" | "categories" | "blog" | "banners" — matches CloudinaryUploader's folder prop.
+  folder           String
+  uploadedByUserId String
+  createdAt        DateTime @default(now())
+
+  @@index([folder])
+}
+
+/// Real (double opt-in) newsletter subscription — replaces the footer
+/// form's previous fake `setTimeout` stub. `isConfirmed` only flips true
+/// once the subscriber clicks the link in their confirmation email; an
+/// unconfirmed row is never emailed by the marketing sender (EmailCampaign
+/// below), only ever sent the one confirmation email itself.
+model NewsletterSubscriber {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  isConfirmed      Boolean   @default(false)
+  confirmToken     String    @unique
+  unsubscribeToken String    @unique
+  subscribedAt     DateTime  @default(now())
+  confirmedAt      DateTime?
+  unsubscribedAt   DateTime?
+}
+
+/// Audit log of admin-sent marketing/bulk emails — not a send queue (the
+/// send itself is a synchronous throttled loop in the action, see
+/// features/marketing-email/actions.ts). One row per campaign, not per
+/// recipient — recipientCount is a snapshot for display, not a join table.
+model EmailCampaign {
+  id              String   @id @default(cuid())
+  subject         String
+  body            String   @db.Text
+  /// "newsletter" | "segment:vip" | "segment:frequent" | "segment:inactive" | "segment:new" | "segment:regular"
+  audience        String
+  recipientCount  Int
+  createdByUserId String
+  createdByName   String
+  createdAt       DateTime @default(now())
 }

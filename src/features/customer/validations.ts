@@ -1,3 +1,7 @@
-// Zod schemas for the "customer" feature (form input + API payload validation).
-// Populated when the customer feature is built out.
-export {};
+import { z } from "zod";
+
+export const addCustomerTagSchema = z.object({
+  label: z.string().min(2, "Enter a tag").max(40, "Keep it short"),
+});
+
+export type AddCustomerTagValues = z.infer<typeof addCustomerTagSchema>;

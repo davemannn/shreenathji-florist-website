@@ -62,7 +62,9 @@ export async function createOrder(input: CreateOrderInput) {
       ...orderData,
       items: { create: items },
     },
-    include: { items: true },
+    // deliverySlot included so the order-confirmation email (checkout/actions.ts)
+    // can show a friendly slot name, not just the raw ID.
+    include: { items: true, deliverySlot: true },
   });
 }
 
@@ -99,9 +101,17 @@ export async function findOrderByNumberForInvoice(orderNumber: string) {
   });
 }
 
-/** Scoped by userId too — never trust a client-supplied orderId alone before mutating payment state. */
+/**
+ * Scoped by userId too — never trust a client-supplied orderId alone before
+ * mutating payment state. Includes items/deliverySlot/user so the
+ * order-confirmation email (verifyRazorpayPaymentAction) can be composed
+ * without a second round trip.
+ */
 export async function findOrderById(orderId: string, userId: string) {
-  return prisma.order.findFirst({ where: { id: orderId, userId } });
+  return prisma.order.findFirst({
+    where: { id: orderId, userId },
+    include: { items: true, deliverySlot: true, user: { select: { email: true, name: true } } },
+  });
 }
 
 export async function attachRazorpayOrderId(orderId: string, razorpayOrderId: string) {

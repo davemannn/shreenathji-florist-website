@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Trash2 } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ContentImage } from "@/components/shared/content-image";
 import { SortableHeader } from "@/components/shared/sortable-header";
-import { deleteCategoryAction } from "../actions";
+import { deleteCategoryAction, setCategoryArchivedAction } from "../actions";
 import type { AdminCategory } from "../types";
 import type { AdminCategorySort } from "../queries";
 
@@ -33,6 +33,18 @@ export function CategoriesTable({ categories, sort, dir, search }: CategoriesTab
   const [isPending, startTransition] = useTransition();
   const extraParams = { search };
 
+  function handleToggleArchived(category: AdminCategory) {
+    startTransition(async () => {
+      try {
+        await setCategoryArchivedAction(category.id, !category.isArchived);
+        toast.success(category.isArchived ? "Category restored." : "Category archived.");
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Couldn't update this category.");
+      }
+    });
+  }
+
   function handleDelete(category: AdminCategory) {
     if (category.productCount > 0) {
       toast.error(
@@ -40,7 +52,12 @@ export function CategoriesTable({ categories, sort, dir, search }: CategoriesTab
       );
       return;
     }
-    if (!window.confirm(`Delete "${category.name}"? This can't be undone.`)) return;
+    if (
+      !window.confirm(
+        `Permanently delete "${category.name}"? This can't be undone — consider archiving instead.`,
+      )
+    )
+      return;
 
     startTransition(async () => {
       try {
@@ -90,7 +107,7 @@ export function CategoriesTable({ categories, sort, dir, search }: CategoriesTab
       </TableHeader>
       <TableBody>
         {categories.map((category) => (
-          <TableRow key={category.id}>
+          <TableRow key={category.id} className={category.isArchived ? "opacity-60" : undefined}>
             <TableCell>
               <div className="flex items-center gap-3">
                 <ContentImage
@@ -109,6 +126,7 @@ export function CategoriesTable({ categories, sort, dir, search }: CategoriesTab
             </TableCell>
             <TableCell>{category.productCount}</TableCell>
             <TableCell className="flex gap-1">
+              {category.isArchived ? <Badge variant="outline">Archived</Badge> : null}
               {category.isOccasion ? <Badge variant="secondary">Occasion</Badge> : null}
               {category.isFeatured ? <Badge variant="secondary">Featured</Badge> : null}
             </TableCell>
@@ -123,13 +141,26 @@ export function CategoriesTable({ categories, sort, dir, search }: CategoriesTab
                   Edit
                 </Button>
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   size="sm"
                   disabled={isPending}
+                  onClick={() => handleToggleArchived(category)}
+                >
+                  {category.isArchived ? (
+                    <ArchiveRestore className="size-3.5" aria-hidden="true" />
+                  ) : (
+                    <Archive className="size-3.5" aria-hidden="true" />
+                  )}
+                  {category.isArchived ? "Restore" : "Archive"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={isPending}
                   onClick={() => handleDelete(category)}
+                  aria-label={`Permanently delete ${category.name}`}
                 >
                   <Trash2 className="size-3.5" aria-hidden="true" />
-                  Delete
                 </Button>
               </div>
             </TableCell>

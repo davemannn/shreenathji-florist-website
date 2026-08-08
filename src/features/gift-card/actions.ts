@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/server/auth/config";
 import { requireAdminCapability } from "@/server/auth/require-admin";
+import { logAudit } from "@/server/audit/log";
 import {
   attachRazorpayOrderId,
   adjustGiftCardBalance as adjustGiftCardBalanceRepo,
@@ -18,7 +19,7 @@ import {
   getRazorpayPublicKeyId,
   verifyRazorpaySignature,
 } from "@/server/payments/razorpay";
-import { getResendClient } from "@/server/email/resend";
+import { sendEmail } from "@/server/email/mailer";
 import { GiftCardEmail } from "@/emails/gift-card-email";
 import {
   adjustGiftCardBalanceFormSchema,
@@ -101,10 +102,8 @@ export async function verifyGiftCardPaymentAction(input: VerifyGiftCardPaymentIn
   // Best-effort — the purchase itself already succeeded, so a failed/
   // unconfigured email send shouldn't surface as an error to the buyer.
   try {
-    const resend = getResendClient();
     const isForSelf = giftCard.recipientType === "SELF";
-    await resend.emails.send({
-      from: "Shreenathji Florist <onboarding@resend.dev>",
+    await sendEmail({
       to: isForSelf ? user.email : (giftCard.recipientEmail ?? user.email),
       subject: isForSelf
         ? "Your Shreenathji Florist gift card"
@@ -119,7 +118,7 @@ export async function verifyGiftCardPaymentAction(input: VerifyGiftCardPaymentIn
       }),
     });
   } catch {
-    // Resend not configured, or the send failed — not fatal to the purchase.
+    // Email isn't configured, or the send failed — not fatal to the purchase.
   }
 
   return { code: giftCard.code };
@@ -154,6 +153,14 @@ export async function issueGiftCardAction(input: IssueGiftCardFormValues) {
     issuedByUserId: session.userId,
   });
 
+  await logAudit(session, {
+    entityType: "GiftCard",
+    entityId: card.id,
+    entityLabel: card.code,
+    action: "created",
+    summary: `Manually issued ₹${values.amount} — ${values.reason}`,
+  });
+
   revalidatePath("/admin/gift-cards");
   return { id: card.id, code: card.code };
 }
@@ -165,7 +172,20 @@ export async function adjustGiftCardBalanceAction(
   const session = await requireAdminCapability("gift_cards:issue");
   const values = adjustGiftCardBalanceFormSchema.parse(input);
 
-  await adjustGiftCardBalanceRepo(giftCardId, values.amount, values.reason, session.userId);
+  const card = await adjustGiftCardBalanceRepo(
+    giftCardId,
+    values.amount,
+    values.reason,
+    session.userId,
+  );
+
+  await logAudit(session, {
+    entityType: "GiftCard",
+    entityId: giftCardId,
+    entityLabel: card.code,
+    action: "updated",
+    summary: `${values.amount >= 0 ? "Credited" : "Debited"} ₹${Math.abs(values.amount)} — ${values.reason}`,
+  });
 
   revalidatePath("/admin/gift-cards");
   revalidatePath(`/admin/gift-cards/${giftCardId}`);

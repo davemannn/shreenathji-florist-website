@@ -7,6 +7,10 @@ import {
   findOrderByIdAdmin,
   updateOrderStatus as updateOrderStatusRepo,
 } from "@/server/repositories/order.repository";
+import { sendEmail } from "@/server/email/mailer";
+import { OrderStatusEmail, type OrderStatusEmailStatus } from "@/emails/order-status-email";
+import { getStoreSettings } from "@/features/settings/queries";
+import { siteConfig } from "@/config/site";
 import { allowedNextStatuses } from "./status-transitions";
 import {
   assignDeliveryPersonSchema,
@@ -14,6 +18,40 @@ import {
   type AssignDeliveryPersonValues,
   type UpdateOrderStatusValues,
 } from "./validations";
+
+const EMAILED_STATUSES: OrderStatusEmailStatus[] = ["OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"];
+
+/**
+ * Only fires for the three transitions above — PROCESSING is an internal
+ * housekeeping status, not something a customer needs an email about.
+ * Non-fatal: a failed notification shouldn't block the status update
+ * itself, matching every other best-effort email send in this codebase.
+ */
+async function sendOrderStatusEmailIfNeeded(
+  order: NonNullable<Awaited<ReturnType<typeof findOrderByIdAdmin>>>,
+  toStatus: string,
+) {
+  if (!EMAILED_STATUSES.includes(toStatus as OrderStatusEmailStatus)) return;
+
+  try {
+    const settings = await getStoreSettings();
+    await sendEmail({
+      to: order.user.email,
+      subject: `Order ${order.orderNumber} — ${toStatus === "OUT_FOR_DELIVERY" ? "out for delivery" : toStatus === "DELIVERED" ? "delivered" : "cancelled"}`,
+      react: OrderStatusEmail({
+        customerName: order.user.name,
+        orderNumber: order.orderNumber,
+        status: toStatus as OrderStatusEmailStatus,
+        trackOrderUrl: `${siteConfig.url}/account/orders`,
+        storeAddressLine: settings.registeredAddressLine,
+        storeCity: settings.registeredCity,
+        storePincode: settings.registeredPincode,
+      }),
+    });
+  } catch {
+    // Email isn't configured, or the send failed — not fatal to the status update.
+  }
+}
 
 export async function updateOrderStatusAction(input: UpdateOrderStatusValues) {
   const values = updateOrderStatusSchema.parse(input);
@@ -46,6 +84,7 @@ export async function updateOrderStatusAction(input: UpdateOrderStatusValues) {
     changedByRole: session.role,
     note: values.note,
   });
+  await sendOrderStatusEmailIfNeeded(order, values.toStatus);
 
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${values.orderId}`);

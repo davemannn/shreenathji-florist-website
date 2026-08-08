@@ -8,8 +8,10 @@ import {
 } from "@/server/repositories/coupon.repository";
 import { findDeliverySlotById } from "@/server/repositories/delivery-slot.repository";
 import { findProductsTaxInfo } from "@/server/repositories/product.repository";
+import { listUpcomingHolidays } from "@/server/repositories/holiday.repository";
+import { deleteCartSnapshot } from "@/server/repositories/cart-snapshot.repository";
 import { getStoreSettings } from "@/features/settings/queries";
-import { effectiveSlotCharge, isSlotAvailable, toIsoDate } from "@/lib/delivery";
+import { effectiveSlotCharge, isSlotAvailable, toIsoDate, type HolidayInfo } from "@/lib/delivery";
 import { isInterStateOrder, resolveProductTax, splitGst, splitInclusiveTax } from "@/lib/tax";
 
 export interface CartLineItemInput {
@@ -47,6 +49,14 @@ export interface OrderTotals {
   total: number;
   couponId?: string;
   couponError?: string;
+}
+
+async function getHolidayInfos(): Promise<HolidayInfo[]> {
+  const holidays = await listUpcomingHolidays();
+  return holidays.map((h) => ({
+    dateIso: toIsoDate(h.date),
+    blocksAllDelivery: h.blocksAllDelivery,
+  }));
 }
 
 /**
@@ -96,7 +106,8 @@ export async function calculateOrderTotals(
       const dateIso =
         slot.type === "FIXED" ? toIsoDate() : toIsoDate(options.deliveryDate ?? new Date());
 
-      if (!isSlotAvailable(slot.type, dateIso, undefined, settings.midnightCutoffHour)) {
+      const holidays = await getHolidayInfos();
+      if (!isSlotAvailable(slot.type, dateIso, undefined, settings.midnightCutoffHour, holidays)) {
         throw new Error("The selected delivery slot is no longer available for this date.");
       }
 
@@ -134,6 +145,19 @@ export async function placeOrder(input: PlaceOrderInput) {
   }
 
   const settings = await getStoreSettings();
+
+  // Client-side toggles (checkout UI, cart preview) only hide the option —
+  // a disabled method is still trivially reachable by anyone calling this
+  // action directly, so it must be rejected here too.
+  if (input.paymentMethod === "COD" && !settings.codEnabled) {
+    throw new Error("Cash on Delivery isn't available right now. Please pay online instead.");
+  }
+  if (input.paymentMethod === "RAZORPAY" && !settings.razorpayEnabled) {
+    throw new Error(
+      "Online payment isn't available right now. Please choose Cash on Delivery instead.",
+    );
+  }
+
   const isInterState = isInterStateOrder(input.deliveryState, settings.registeredState);
   const taxInfoByProduct = await findProductsTaxInfo(input.items.map((item) => item.productId));
 
@@ -212,6 +236,13 @@ export async function placeOrder(input: PlaceOrderInput) {
 
   if (totals.couponId) {
     await incrementCouponUsage(totals.couponId);
+  }
+
+  // A placed order isn't an abandoned cart — clear the snapshot here
+  // (authoritative, server-side) rather than relying on the client to
+  // remember to call a separate "clear" action after checkout succeeds.
+  if (input.userId) {
+    await deleteCartSnapshot(input.userId);
   }
 
   return order;

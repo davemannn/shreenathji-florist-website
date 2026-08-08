@@ -24,5 +24,7 @@ export const getStoreSettings = cache(async (): Promise<StoreSettings> => {
     registeredPincode: row.registeredPincode ?? undefined,
     defaultGstRate: row.defaultGstRate,
     invoicePrefix: row.invoicePrefix,
+    codEnabled: row.codEnabled,
+    razorpayEnabled: row.razorpayEnabled,
   };
 });

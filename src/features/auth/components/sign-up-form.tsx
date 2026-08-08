@@ -29,8 +29,10 @@ export function SignUpForm() {
       toast.error(error.message ?? "Couldn't create your account. Try a different email.");
       return;
     }
-    router.push("/");
-    router.refresh();
+    // requireEmailVerification is on (see server/auth/config.ts) — sign-up
+    // doesn't create a session yet, and better-auth has already fired the
+    // first verification OTP. Go straight to entering it.
+    router.push(`/verify-email?email=${encodeURIComponent(values.email)}`);
   }
 
   return (

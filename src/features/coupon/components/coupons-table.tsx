@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Power, Trash2 } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { deleteCouponAction } from "../actions";
+import { deleteCouponAction, setCouponActiveAction } from "../actions";
 import type { AdminCoupon } from "../types";
 
 function formatDate(iso: string): string {
@@ -30,8 +30,23 @@ export function CouponsTable({ coupons }: { coupons: AdminCoupon[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  function handleToggleActive(coupon: AdminCoupon) {
+    startTransition(async () => {
+      try {
+        await setCouponActiveAction(coupon.id, !coupon.isActive);
+        toast.success(coupon.isActive ? "Coupon deactivated." : "Coupon activated.");
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Couldn't update this coupon.");
+      }
+    });
+  }
+
   function handleDelete(coupon: AdminCoupon) {
-    if (!window.confirm(`Delete coupon "${coupon.code}"? This can't be undone.`)) return;
+    if (
+      !window.confirm(`Permanently delete coupon "${coupon.code}"? Consider deactivating instead.`)
+    )
+      return;
     startTransition(async () => {
       try {
         await deleteCouponAction(coupon.id);
@@ -114,13 +129,22 @@ export function CouponsTable({ coupons }: { coupons: AdminCoupon[] }) {
                     Edit
                   </Button>
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="sm"
                     disabled={isPending}
+                    onClick={() => handleToggleActive(coupon)}
+                  >
+                    <Power className="size-3.5" aria-hidden="true" />
+                    {coupon.isActive ? "Deactivate" : "Activate"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    disabled={isPending}
                     onClick={() => handleDelete(coupon)}
+                    aria-label={`Permanently delete ${coupon.code}`}
                   >
                     <Trash2 className="size-3.5" aria-hidden="true" />
-                    Delete
                   </Button>
                 </div>
               </TableCell>

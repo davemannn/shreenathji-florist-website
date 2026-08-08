@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Menu, LogOut, User as UserIcon, Bell } from "lucide-react";
@@ -16,8 +16,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
 import type { AdminRole } from "@/server/auth/permissions";
+import { playOrderChime, unlockChimeAudio } from "@/lib/chime";
 import { useOrderNotifications } from "../hooks/use-order-notifications";
 import { AdminNavList } from "./admin-nav-list";
+import { GlobalSearch } from "./global-search";
 
 const ROLE_LABELS: Record<AdminRole, string> = {
   super_admin: "Super Admin",
@@ -36,8 +38,30 @@ interface AdminShellProps {
 export function AdminShell({ role, name, email, children }: AdminShellProps) {
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { count } = useOrderNotifications();
+  // Mounted once for the whole admin shell (unlike the orders page's own
+  // NewActivityBanner, which polls independently just for its banner) —
+  // this is the one call site that actually plays the chime, so a new
+  // order never gets announced twice.
+  const { count } = useOrderNotifications(() => playOrderChime());
   const notificationsHref = role === "delivery_guy" ? "/admin/my-deliveries" : "/admin/orders";
+
+  // Browsers suspend a freshly-created AudioContext until a user gesture
+  // resumes it — the chime itself fires later from a background poll, not
+  // a gesture, so without this the very first chime of the session could
+  // be silently dropped. One-time listeners, self-removing.
+  useEffect(() => {
+    function unlock() {
+      unlockChimeAudio();
+      document.removeEventListener("pointerdown", unlock);
+      document.removeEventListener("keydown", unlock);
+    }
+    document.addEventListener("pointerdown", unlock);
+    document.addEventListener("keydown", unlock);
+    return () => {
+      document.removeEventListener("pointerdown", unlock);
+      document.removeEventListener("keydown", unlock);
+    };
+  }, []);
 
   async function handleSignOut() {
     await authClient.signOut();
@@ -86,7 +110,8 @@ export function AdminShell({ role, name, email, children }: AdminShellProps) {
             <Menu aria-hidden="true" />
           </Button>
 
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-2">
+            <GlobalSearch />
             <Button
               variant="ghost"
               size="icon"

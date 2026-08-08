@@ -38,6 +38,10 @@ export async function updateDeliverySlot(id: string, input: UpsertDeliverySlotIn
   return prisma.deliverySlot.update({ where: { id }, data: input });
 }
 
+export async function setDeliverySlotActive(id: string, isActive: boolean) {
+  return prisma.deliverySlot.update({ where: { id }, data: { isActive } });
+}
+
 /**
  * Slots referenced by real orders (Order.deliverySlotId, onDelete: SetNull)
  * hard delete safely — orders already snapshot the slot's label/date/type at

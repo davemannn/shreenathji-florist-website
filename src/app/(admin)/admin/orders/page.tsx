@@ -5,6 +5,7 @@ import { OrderFilters } from "@/features/order/components/order-filters";
 import { OrdersTable } from "@/features/order/components/orders-table";
 import { NewActivityBanner } from "@/features/dashboard/components/new-activity-banner";
 import { Pagination } from "@/components/shared/pagination";
+import { PAGE_SIZE_OPTIONS, parsePageSize } from "@/lib/pagination";
 import type { OrderStatus } from "@/features/order/types";
 
 export const metadata: Metadata = {
@@ -30,8 +31,18 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
     : undefined;
   const search = typeof params.search === "string" ? params.search : undefined;
   const page = typeof params.page === "string" ? Number(params.page) || 1 : 1;
+  const pageSize = parsePageSize(params.pageSize);
 
-  const { orders, total, pageSize } = await listOrdersAdmin({ status, search, page });
+  const {
+    orders,
+    total,
+    pageSize: resolvedPageSize,
+  } = await listOrdersAdmin({
+    status,
+    search,
+    page,
+    pageSize,
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -46,9 +57,10 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
       <Pagination
         basePath="/admin/orders"
         page={page}
-        pageSize={pageSize}
+        pageSize={resolvedPageSize}
         total={total}
         extraParams={{ status, search }}
+        pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
       />
     </div>
   );

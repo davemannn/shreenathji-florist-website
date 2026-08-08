@@ -1,9 +1,11 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { admin } from "better-auth/plugins";
+import { admin, emailOTP } from "better-auth/plugins";
 import { adminAc } from "better-auth/plugins/admin/access";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/server/db/prisma";
+import { sendEmail } from "@/server/email/mailer";
+import { OtpEmail, type OtpEmailPurpose } from "@/emails/otp-email";
 import { BETTER_AUTH_ADMIN_ROLES } from "./permissions";
 
 /**
@@ -28,8 +30,41 @@ export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
   emailAndPassword: {
     enabled: true,
+    // A signup/sign-in still needs a password — the emailOTP plugin below
+    // only replaces *verification* (confirming the address), not the
+    // credential itself. See that plugin's overrideDefaultEmailVerification.
+    requireEmailVerification: true,
+    // Deliberately no sendResetPassword here — the classic link-based
+    // reset flow is unused; emailOTP's own forget-password OTP flow
+    // (below) is completely independent of this option.
   },
   plugins: [
+    emailOTP({
+      otpLength: 6,
+      expiresIn: 300, // 5 minutes — matches the copy hardcoded in emails/otp-email.tsx
+      allowedAttempts: 3,
+      // This is the switch that makes the OTP actually *be* the
+      // verification mechanism for requireEmailVerification above, instead
+      // of the core's default magic-link email — see this plugin's own
+      // `init()`, which monkey-patches emailVerification.sendVerificationEmail
+      // to fire an OTP send instead whenever core would otherwise send a link.
+      overrideDefaultEmailVerification: true,
+      async sendVerificationOTP({ email, otp, type }) {
+        // "sign-in" and "change-email" OTP types aren't used by this app
+        // (no passwordless sign-in, no self-service email-change flow yet)
+        // — only the two purposes emails/otp-email.tsx actually has copy for.
+        if (type !== "email-verification" && type !== "forget-password") return;
+
+        await sendEmail({
+          to: email,
+          subject:
+            type === "email-verification"
+              ? "Verify your email — Shreenathji Florist"
+              : "Reset your password — Shreenathji Florist",
+          react: OtpEmail({ otp, purpose: type as OtpEmailPurpose }),
+        });
+      },
+    }),
     admin({
       defaultRole: "user",
       adminRoles: BETTER_AUTH_ADMIN_ROLES,

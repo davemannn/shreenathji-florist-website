@@ -6,7 +6,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useCartStore } from "@/stores/cart-store";
-import { tomorrowIsoIst } from "@/lib/delivery";
+import { tomorrowIsoIst, type HolidayInfo } from "@/lib/delivery";
 import type { StoreSettings } from "@/features/settings/types";
 import { checkoutSchema, type CheckoutValues } from "../validations";
 import { placeOrderAction, verifyRazorpayPaymentAction } from "../actions";
@@ -21,9 +21,15 @@ interface CheckoutFormProps {
   addresses: SavedAddress[];
   deliverySlots: DeliverySlotOption[];
   storeSettings: StoreSettings;
+  holidays: HolidayInfo[];
 }
 
-export function CheckoutForm({ addresses, deliverySlots, storeSettings }: CheckoutFormProps) {
+export function CheckoutForm({
+  addresses,
+  deliverySlots,
+  storeSettings,
+  holidays,
+}: CheckoutFormProps) {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const appliedCoupon = useCartStore((state) => state.appliedCoupon);
@@ -64,7 +70,10 @@ export function CheckoutForm({ addresses, deliverySlots, storeSettings }: Checko
       deliverySlotId: defaultSlot?.id,
       messageCard: "",
       giftWrap: false,
-      paymentMethod: "COD",
+      // Default to whichever method is actually enabled — COD is preferred
+      // when both are on, but if it's been disabled Razorpay must be picked
+      // instead so the form doesn't start on an unselectable option.
+      paymentMethod: storeSettings.codEnabled ? "COD" : "RAZORPAY",
     },
   });
 
@@ -152,8 +161,15 @@ export function CheckoutForm({ addresses, deliverySlots, storeSettings }: Checko
       >
         <div className="flex flex-col gap-8">
           <AddressSection addresses={addresses} />
-          <DeliverySection deliverySlots={deliverySlots} storeSettings={storeSettings} />
-          <PaymentSection />
+          <DeliverySection
+            deliverySlots={deliverySlots}
+            storeSettings={storeSettings}
+            holidays={holidays}
+          />
+          <PaymentSection
+            codEnabled={storeSettings.codEnabled}
+            razorpayEnabled={storeSettings.razorpayEnabled}
+          />
         </div>
         <OrderSummary
           deliverySlots={deliverySlots}

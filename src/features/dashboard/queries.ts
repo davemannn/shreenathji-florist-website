@@ -4,8 +4,9 @@ import {
   listOrdersInRange,
   type DateRangeParams,
 } from "@/server/repositories/order.repository";
+import { listRecentAuditLogs } from "@/server/repositories/audit-log.repository";
 import { toIsoDate } from "@/lib/delivery";
-import type { FinancialDashboard, OperationalDashboard } from "./types";
+import type { ActivityItem, FinancialDashboard, OperationalDashboard } from "./types";
 
 /** Visible to every staff role with dashboard access (including store_manager) — order counts only, never revenue. */
 export async function getOperationalDashboard(
@@ -79,4 +80,18 @@ export async function getFinancialDashboard(range: DateRangeParams): Promise<Fin
     avgOrderValue: orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0,
     topProducts,
   };
+}
+
+/** Visible to any staff role that can see the dashboard — every entry is already just "who changed what", no financial figures embedded. */
+export async function getRecentActivity(limit = 8): Promise<ActivityItem[]> {
+  const logs = await listRecentAuditLogs(limit);
+  return logs.map((log) => ({
+    id: log.id,
+    entityType: log.entityType,
+    entityLabel: log.entityLabel,
+    action: log.action,
+    summary: log.summary,
+    changedByName: log.changedByName,
+    createdAt: log.createdAt.toISOString(),
+  }));
 }

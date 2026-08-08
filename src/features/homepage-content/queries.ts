@@ -1,14 +1,17 @@
 import { pexelsPhoto } from "@/lib/stock-photo";
+import { listActiveBannersByType } from "@/server/repositories/banner.repository";
 import type { HeroSlide, NewsletterTeaserContent, OccasionBanner, PromoBanner } from "./types";
 
-// Static fixtures for now — homepage content management (admin-editable,
-// DB-backed) is a separate future milestone. Components only ever call the
-// exported getX() functions below, so swapping the body for a real query
-// later doesn't touch any component.
+// DB-backed via the Banner model (admin-managed at /admin/banners, with
+// optional startsAt/endsAt scheduling — see banner.repository.ts). The
+// fixtures below only fire as a fallback when a type has zero live rows
+// (e.g. right after this migration, or if an admin deactivates every
+// banner of one type) — so the homepage never renders a blank hero/promo
+// section, and behaves exactly as before until real content is added.
 
-const HERO_SLIDES: HeroSlide[] = [
+const FALLBACK_HERO_SLIDES: HeroSlide[] = [
   {
-    id: "1",
+    id: "fallback-1",
     eyebrow: "Fresh Today",
     headline: "Fresh Flowers\n& Feeling Love",
     ctaLabel: "Shop Now",
@@ -17,7 +20,7 @@ const HERO_SLIDES: HeroSlide[] = [
     imageUrl: pexelsPhoto("28115373", 1200),
   },
   {
-    id: "2",
+    id: "fallback-2",
     eyebrow: "Birthday Gifts",
     headline: "Inspired\nBy Nature",
     ctaLabel: "Shop Birthday Flowers",
@@ -26,7 +29,7 @@ const HERO_SLIDES: HeroSlide[] = [
     imageUrl: pexelsPhoto("27176823", 1200),
   },
   {
-    id: "3",
+    id: "fallback-3",
     eyebrow: "Same Day Delivery",
     headline: "Fresh Flowers\nFor You, Today",
     ctaLabel: "Order Now",
@@ -36,9 +39,9 @@ const HERO_SLIDES: HeroSlide[] = [
   },
 ];
 
-const PROMO_BANNERS: PromoBanner[] = [
+const FALLBACK_PROMO_BANNERS: PromoBanner[] = [
   {
-    id: "1",
+    id: "fallback-1",
     title: "Spring Collections",
     subtitle: "30% Off Today",
     ctaLabel: "Shop Now",
@@ -47,7 +50,7 @@ const PROMO_BANNERS: PromoBanner[] = [
     imageUrl: pexelsPhoto("30891127", 800),
   },
   {
-    id: "2",
+    id: "fallback-2",
     title: "Simple & Elegant",
     subtitle: "New Arrivals",
     ctaLabel: "Shop Now",
@@ -56,7 +59,7 @@ const PROMO_BANNERS: PromoBanner[] = [
     imageUrl: pexelsPhoto("15198293", 800),
   },
   {
-    id: "3",
+    id: "fallback-3",
     title: "Summer Loving",
     subtitle: "Staff Pick",
     ctaLabel: "Shop Now",
@@ -66,7 +69,7 @@ const PROMO_BANNERS: PromoBanner[] = [
   },
 ];
 
-const OCCASION_BANNER: OccasionBanner = {
+const FALLBACK_OCCASION_BANNER: OccasionBanner = {
   eyebrow: "Better Than Cake",
   heading: "Birthday Bouquets",
   body: "Make their day unforgettable with a hand-tied bouquet, delivered fresh to their door — same day, anywhere in Vadodara.",
@@ -83,15 +86,48 @@ const NEWSLETTER_TEASER: NewsletterTeaserContent = {
 };
 
 export async function getHeroSlides(): Promise<HeroSlide[]> {
-  return HERO_SLIDES;
+  const rows = await listActiveBannersByType("HERO");
+  if (rows.length === 0) return FALLBACK_HERO_SLIDES;
+
+  return rows.map((row) => ({
+    id: row.id,
+    eyebrow: row.eyebrow ?? "",
+    headline: row.headline,
+    ctaLabel: row.ctaLabel ?? "Shop Now",
+    ctaHref: row.ctaHref ?? "/shop",
+    imageAlt: row.imageAlt ?? row.headline,
+    imageUrl: row.imageUrl ?? undefined,
+  }));
 }
 
 export async function getPromoBanners(): Promise<PromoBanner[]> {
-  return PROMO_BANNERS;
+  const rows = await listActiveBannersByType("PROMO");
+  if (rows.length === 0) return FALLBACK_PROMO_BANNERS;
+
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.headline,
+    subtitle: row.subtitle ?? "",
+    ctaLabel: row.ctaLabel ?? "Shop Now",
+    href: row.ctaHref ?? "/shop",
+    imageAlt: row.imageAlt ?? row.headline,
+    imageUrl: row.imageUrl ?? undefined,
+  }));
 }
 
 export async function getOccasionBanner(): Promise<OccasionBanner> {
-  return OCCASION_BANNER;
+  const [row] = await listActiveBannersByType("OCCASION");
+  if (!row) return FALLBACK_OCCASION_BANNER;
+
+  return {
+    eyebrow: row.eyebrow ?? "",
+    heading: row.headline,
+    body: row.subtitle ?? "",
+    ctaLabel: row.ctaLabel ?? "Explore",
+    ctaHref: row.ctaHref ?? "/shop",
+    imageAlt: row.imageAlt ?? row.headline,
+    imageUrl: row.imageUrl ?? undefined,
+  };
 }
 
 export async function getNewsletterTeaser(): Promise<NewsletterTeaserContent> {

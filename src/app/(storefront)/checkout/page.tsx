@@ -5,6 +5,7 @@ import { auth } from "@/server/auth/config";
 import { listAddressesForUser } from "@/server/repositories/address.repository";
 import { listActiveDeliverySlots } from "@/server/repositories/delivery-slot.repository";
 import { getStoreSettings } from "@/features/settings/queries";
+import { getUpcomingHolidayInfos } from "@/features/holiday/queries";
 import { CheckoutForm } from "@/features/checkout/components/checkout-form";
 
 export const metadata: Metadata = {
@@ -17,10 +18,11 @@ export default async function CheckoutPage() {
     redirect("/sign-in?redirectTo=/checkout");
   }
 
-  const [addressRows, slotRows, storeSettings] = await Promise.all([
+  const [addressRows, slotRows, storeSettings, holidays] = await Promise.all([
     listAddressesForUser(session.user.id),
     listActiveDeliverySlots(),
     getStoreSettings(),
+    getUpcomingHolidayInfos(),
   ]);
 
   const addresses = addressRows.map((address) => ({
@@ -50,6 +52,7 @@ export default async function CheckoutPage() {
         addresses={addresses}
         deliverySlots={deliverySlots}
         storeSettings={storeSettings}
+        holidays={holidays}
       />
     </div>
   );

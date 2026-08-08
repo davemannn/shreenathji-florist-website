@@ -13,13 +13,22 @@ import {
   nowInIst,
   todayIsoIst,
   type DeliverySlotType,
+  type HolidayInfo,
 } from "@/lib/delivery";
 import type { StoreSettings } from "@/features/settings/types";
 import { DeliveryDatePicker } from "./delivery-date-picker";
 import type { CheckoutValues } from "../validations";
 import type { DeliverySlotOption } from "../types";
 
-function unavailableReason(type: DeliverySlotType, cutoffHour: number): string {
+function unavailableReason(
+  type: DeliverySlotType,
+  cutoffHour: number,
+  dateIso: string,
+  holidays: HolidayInfo[],
+): string {
+  const holiday = holidays.find((h) => h.dateIso === dateIso);
+  if (holiday?.blocksAllDelivery) return "We're closed this day — pick a different date.";
+  if (holiday && type === "MIDNIGHT") return "Midnight delivery isn't available this day.";
   if (type === "NORMAL") return "Not available for same-day — pick Instant or Midnight instead.";
   if (type === "MIDNIGHT") {
     const label = cutoffHour > 12 ? `${cutoffHour - 12} PM` : `${cutoffHour} AM`;
@@ -31,9 +40,10 @@ function unavailableReason(type: DeliverySlotType, cutoffHour: number): string {
 interface DeliverySectionProps {
   deliverySlots: DeliverySlotOption[];
   storeSettings: StoreSettings;
+  holidays: HolidayInfo[];
 }
 
-export function DeliverySection({ deliverySlots, storeSettings }: DeliverySectionProps) {
+export function DeliverySection({ deliverySlots, storeSettings, holidays }: DeliverySectionProps) {
   const { control, register, watch, setValue } = useFormContext<CheckoutValues>();
   const { midnightCutoffHour, midnightCharge } = storeSettings;
   const now = nowInIst();
@@ -44,13 +54,14 @@ export function DeliverySection({ deliverySlots, storeSettings }: DeliverySectio
   const isExpressSelected = selectedSlot?.type === "FIXED";
 
   // If the date changes out from under a Standard/Midnight selection and
-  // makes it invalid (e.g. switching to "Today" while Standard was picked),
-  // clear it so the user re-picks a slot that's actually bookable.
+  // makes it invalid (e.g. switching to "Today" while Standard was picked,
+  // or the newly-picked date is now a holiday), clear it so the user
+  // re-picks a slot that's actually bookable.
   useEffect(() => {
     if (
       selectedSlot &&
       selectedSlot.type !== "FIXED" &&
-      !isSlotAvailable(selectedSlot.type, selectedDate, undefined, midnightCutoffHour)
+      !isSlotAvailable(selectedSlot.type, selectedDate, undefined, midnightCutoffHour, holidays)
     ) {
       setValue("deliverySlotId", undefined);
     }
@@ -116,6 +127,7 @@ export function DeliverySection({ deliverySlots, storeSettings }: DeliverySectio
                       selectedDate,
                       now,
                       midnightCutoffHour,
+                      holidays,
                     );
                     const isExpress = slot.type === "FIXED";
                     const charge = isExpress
@@ -161,7 +173,12 @@ export function DeliverySection({ deliverySlots, storeSettings }: DeliverySectio
                           </span>
                         ) : (
                           <span className="text-muted-foreground text-xs">
-                            {unavailableReason(slot.type, midnightCutoffHour)}
+                            {unavailableReason(
+                              slot.type,
+                              midnightCutoffHour,
+                              selectedDate,
+                              holidays,
+                            )}
                           </span>
                         )}
                       </button>

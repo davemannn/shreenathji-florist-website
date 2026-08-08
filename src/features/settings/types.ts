@@ -20,4 +20,6 @@ export interface StoreSettings {
   registeredPincode?: string;
   defaultGstRate: number;
   invoicePrefix: string;
+  codEnabled: boolean;
+  razorpayEnabled: boolean;
 }

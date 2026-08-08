@@ -91,6 +91,7 @@ export async function listCategoriesAdmin(
     imageCloudinaryId: category.imageCloudinaryId ?? undefined,
     isOccasion: category.isOccasion,
     isFeatured: category.isFeatured,
+    isArchived: category.isArchived,
     sortOrder: category.sortOrder,
     productCount: category._count.products,
     gstRate: category.gstRate ?? undefined,
@@ -106,6 +107,30 @@ export async function listCategoriesAdmin(
   return mapped;
 }
 
+export interface AdminCategoryListResult {
+  categories: AdminCategory[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/**
+ * Paginated wrapper around listCategoriesAdmin's full sorted list — kept
+ * separate rather than folding page/pageSize into that function itself,
+ * because the reorder dialog on /admin/categories still needs the *full*
+ * ordered list regardless of which page the table is showing (see that
+ * page's two parallel listCategoriesAdmin calls).
+ */
+export async function listCategoriesAdminPaginated(
+  params: ListCategoriesAdminQueryParams & { page?: number; pageSize?: number } = {},
+): Promise<AdminCategoryListResult> {
+  const { page = 1, pageSize = 20, ...rest } = params;
+  const all = await listCategoriesAdmin(rest);
+  const total = all.length;
+  const start = (page - 1) * pageSize;
+  return { categories: all.slice(start, start + pageSize), total, page, pageSize };
+}
+
 export async function getCategoryForEdit(id: string): Promise<AdminCategory | null> {
   const category = await findCategoryById(id);
   if (!category) return null;
@@ -119,6 +144,7 @@ export async function getCategoryForEdit(id: string): Promise<AdminCategory | nu
     imageCloudinaryId: category.imageCloudinaryId ?? undefined,
     isOccasion: category.isOccasion,
     isFeatured: category.isFeatured,
+    isArchived: category.isArchived,
     sortOrder: category.sortOrder,
     productCount: await countProductsInCategory(category.id),
     gstRate: category.gstRate ?? undefined,

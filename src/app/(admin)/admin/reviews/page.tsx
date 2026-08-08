@@ -4,6 +4,7 @@ import { requireAdminSession } from "@/server/auth/require-admin";
 import { listReviewsAdmin } from "@/features/review/queries";
 import { ReviewsTable } from "@/features/review/components/reviews-table";
 import { Pagination } from "@/components/shared/pagination";
+import { PAGE_SIZE_OPTIONS, parsePageSize } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -23,8 +24,17 @@ export default async function AdminReviewsPage({ searchParams }: PageProps<"/adm
   const rawStatus = typeof params.status === "string" ? params.status : undefined;
   const status = rawStatus === "pending" || rawStatus === "approved" ? rawStatus : undefined;
   const page = typeof params.page === "string" ? Number(params.page) || 1 : 1;
+  const pageSize = parsePageSize(params.pageSize);
 
-  const { reviews, total, pageSize } = await listReviewsAdmin({ status, page });
+  const {
+    reviews,
+    total,
+    pageSize: resolvedPageSize,
+  } = await listReviewsAdmin({
+    status,
+    page,
+    pageSize,
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -58,9 +68,10 @@ export default async function AdminReviewsPage({ searchParams }: PageProps<"/adm
       <Pagination
         basePath="/admin/reviews"
         page={page}
-        pageSize={pageSize}
+        pageSize={resolvedPageSize}
         total={total}
         extraParams={{ status }}
+        pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
       />
     </div>
   );

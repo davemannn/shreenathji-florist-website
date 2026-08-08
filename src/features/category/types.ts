@@ -19,6 +19,7 @@ export interface AdminCategory {
   imageCloudinaryId?: string;
   isOccasion: boolean;
   isFeatured: boolean;
+  isArchived: boolean;
   sortOrder: number;
   productCount: number;
   /** GST% for products in this category — see lib/tax.ts's resolveProductTax. Only meaningful on Shop categories (isOccasion: false). */

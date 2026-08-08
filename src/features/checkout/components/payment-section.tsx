@@ -20,8 +20,16 @@ const PAYMENT_METHODS = [
   },
 ];
 
-export function PaymentSection() {
+interface PaymentSectionProps {
+  codEnabled: boolean;
+  razorpayEnabled: boolean;
+}
+
+export function PaymentSection({ codEnabled, razorpayEnabled }: PaymentSectionProps) {
   const { control } = useFormContext<CheckoutValues>();
+  const availableMethods = PAYMENT_METHODS.filter(
+    (m) => (m.value === "COD" && codEnabled) || (m.value === "RAZORPAY" && razorpayEnabled),
+  );
 
   return (
     <section>
@@ -31,7 +39,7 @@ export function PaymentSection() {
         name="paymentMethod"
         render={({ field }) => (
           <div className="flex flex-col gap-2">
-            {PAYMENT_METHODS.map((method) => {
+            {availableMethods.map((method) => {
               const Icon = method.icon;
               return (
                 <button

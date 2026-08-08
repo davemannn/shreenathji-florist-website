@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Power, Trash2 } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { deleteDeliverySlotAction } from "../actions";
+import { deleteDeliverySlotAction, setDeliverySlotActiveAction } from "../actions";
 import type { AdminDeliverySlot } from "../types";
 
 const TYPE_LABEL: Record<AdminDeliverySlot["type"], string> = {
@@ -28,8 +28,21 @@ export function DeliverySlotsTable({ slots }: { slots: AdminDeliverySlot[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  function handleToggleActive(slot: AdminDeliverySlot) {
+    startTransition(async () => {
+      try {
+        await setDeliverySlotActiveAction(slot.id, !slot.isActive);
+        toast.success(slot.isActive ? "Delivery slot deactivated." : "Delivery slot activated.");
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Couldn't update this delivery slot.");
+      }
+    });
+  }
+
   function handleDelete(slot: AdminDeliverySlot) {
-    if (!window.confirm(`Delete "${slot.label}"? This can't be undone.`)) return;
+    if (!window.confirm(`Permanently delete "${slot.label}"? Consider deactivating instead.`))
+      return;
     startTransition(async () => {
       try {
         await deleteDeliverySlotAction(slot.id);
@@ -88,13 +101,22 @@ export function DeliverySlotsTable({ slots }: { slots: AdminDeliverySlot[] }) {
                   Edit
                 </Button>
                 <Button
-                  variant="destructive"
+                  variant="outline"
                   size="sm"
                   disabled={isPending}
+                  onClick={() => handleToggleActive(slot)}
+                >
+                  <Power className="size-3.5" aria-hidden="true" />
+                  {slot.isActive ? "Deactivate" : "Activate"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  disabled={isPending}
                   onClick={() => handleDelete(slot)}
+                  aria-label={`Permanently delete ${slot.label}`}
                 >
                   <Trash2 className="size-3.5" aria-hidden="true" />
-                  Delete
                 </Button>
               </div>
             </TableCell>

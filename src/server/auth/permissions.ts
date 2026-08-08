@@ -29,6 +29,8 @@ export type Capability =
   | "orders:cancel"
   | "coupons:manage"
   | "blog:manage"
+  | "banners:manage"
+  | "marketing:send"
   | "gift_cards:view"
   | "gift_cards:issue"
   | "delivery_slots:manage"
@@ -53,6 +55,8 @@ const ROLE_CAPABILITIES: Record<AdminRole, ReadonlySet<Capability>> = {
     "orders:cancel",
     "coupons:manage",
     "blog:manage",
+    "banners:manage",
+    "marketing:send",
     "gift_cards:view",
     "gift_cards:issue",
     "delivery_slots:manage",
@@ -76,6 +80,8 @@ const ROLE_CAPABILITIES: Record<AdminRole, ReadonlySet<Capability>> = {
     "orders:cancel",
     "coupons:manage",
     "blog:manage",
+    "banners:manage",
+    "marketing:send",
     "gift_cards:view",
     "delivery_slots:manage",
     "settings:manage",
@@ -97,6 +103,8 @@ const ROLE_CAPABILITIES: Record<AdminRole, ReadonlySet<Capability>> = {
     "orders:cancel",
     "coupons:manage",
     "blog:manage",
+    "banners:manage",
+    "marketing:send",
     "gift_cards:view",
     "delivery_slots:manage",
     "settings:view",

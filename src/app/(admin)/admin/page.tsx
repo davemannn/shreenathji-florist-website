@@ -2,12 +2,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireAdminSession } from "@/server/auth/require-admin";
 import { can } from "@/server/auth/permissions";
-import { getFinancialDashboard, getOperationalDashboard } from "@/features/dashboard/queries";
+import {
+  getFinancialDashboard,
+  getOperationalDashboard,
+  getRecentActivity,
+} from "@/features/dashboard/queries";
 import { resolveDateRange } from "@/features/reports/date-range";
 import { RevenueTrendChart } from "@/features/dashboard/components/revenue-trend-chart";
 import { OrderVolumeChart } from "@/features/dashboard/components/order-volume-chart";
-import { StatusBreakdownList } from "@/features/dashboard/components/status-breakdown-list";
+import { StatusBreakdownPieChart } from "@/features/dashboard/components/status-breakdown-pie-chart";
 import { TopProductsList } from "@/features/dashboard/components/top-products-list";
+import { ActivityFeed } from "@/features/dashboard/components/activity-feed";
+import {
+  DashboardWidgetGrid,
+  type DashboardWidgetDef,
+} from "@/features/dashboard/components/dashboard-widget-grid";
 import { SummaryCard } from "@/components/shared/summary-card";
 import { formatINR } from "@/lib/format";
 
@@ -20,8 +29,68 @@ export default async function AdminDashboardPage() {
   const seesFinancials = can(session.role, "analytics:view:financial");
 
   const range = resolveDateRange({});
-  const operational = await getOperationalDashboard(range);
-  const financial = seesFinancials ? await getFinancialDashboard(range) : null;
+  const [operational, financial, activity] = await Promise.all([
+    getOperationalDashboard(range),
+    seesFinancials ? getFinancialDashboard(range) : Promise.resolve(null),
+    getRecentActivity(),
+  ]);
+
+  const widgets: DashboardWidgetDef[] = [
+    ...(financial
+      ? [
+          {
+            id: "revenue-trend",
+            label: "Revenue Trend",
+            node: (
+              <section className="border-border rounded-md border p-5">
+                <h2 className="mb-4 font-semibold">Revenue Trend</h2>
+                <RevenueTrendChart data={financial.revenueTrend} />
+              </section>
+            ),
+          },
+        ]
+      : []),
+    {
+      id: "order-volume-status",
+      label: "Order Volume & Status",
+      node: (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <section className="border-border rounded-md border p-5">
+            <h2 className="mb-4 font-semibold">Order Volume</h2>
+            <OrderVolumeChart data={operational.orderVolume} />
+          </section>
+          <section className="border-border rounded-md border p-5">
+            <h2 className="mb-4 font-semibold">Order Status Breakdown</h2>
+            <StatusBreakdownPieChart rows={operational.statusBreakdown} />
+          </section>
+        </div>
+      ),
+    },
+    ...(financial
+      ? [
+          {
+            id: "top-products",
+            label: "Top Products",
+            node: (
+              <section className="border-border rounded-md border p-5">
+                <h2 className="mb-4 font-semibold">Top Products</h2>
+                <TopProductsList products={financial.topProducts} />
+              </section>
+            ),
+          },
+        ]
+      : []),
+    {
+      id: "activity-feed",
+      label: "Recent Activity",
+      node: (
+        <section className="border-border rounded-md border p-5">
+          <h2 className="mb-4 font-semibold">Recent Activity</h2>
+          <ActivityFeed items={activity} />
+        </section>
+      ),
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -53,30 +122,7 @@ export default async function AdminDashboardPage() {
         ) : null}
       </div>
 
-      {financial ? (
-        <section className="border-border rounded-md border p-5">
-          <h2 className="mb-4 font-semibold">Revenue Trend</h2>
-          <RevenueTrendChart data={financial.revenueTrend} />
-        </section>
-      ) : null}
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="border-border rounded-md border p-5">
-          <h2 className="mb-4 font-semibold">Order Volume</h2>
-          <OrderVolumeChart data={operational.orderVolume} />
-        </section>
-        <section className="border-border rounded-md border p-5">
-          <h2 className="mb-4 font-semibold">Order Status Breakdown</h2>
-          <StatusBreakdownList rows={operational.statusBreakdown} />
-        </section>
-      </div>
-
-      {financial ? (
-        <section className="border-border rounded-md border p-5">
-          <h2 className="mb-4 font-semibold">Top Products</h2>
-          <TopProductsList products={financial.topProducts} />
-        </section>
-      ) : null}
+      <DashboardWidgetGrid widgets={widgets} />
 
       {!seesFinancials ? (
         <p className="text-muted-foreground text-xs">

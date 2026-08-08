@@ -8,11 +8,15 @@ import {
   Star,
   Ticket,
   Newspaper,
+  Image,
   Gift,
   Users,
   UserCog,
   Settings,
   FileBarChart,
+  History,
+  ShoppingCart,
+  Send,
 } from "lucide-react";
 import type { Capability } from "@/server/auth/permissions";
 
@@ -44,6 +48,7 @@ export const adminNav: AdminNavItem[] = [
   { label: "Reviews", href: "/admin/reviews", icon: Star, capability: "reviews:moderate" },
   { label: "Coupons", href: "/admin/coupons", icon: Ticket, capability: "coupons:manage" },
   { label: "Blog", href: "/admin/blog", icon: Newspaper, capability: "blog:manage" },
+  { label: "Banners", href: "/admin/banners", icon: Image, capability: "banners:manage" },
   { label: "Gift Cards", href: "/admin/gift-cards", icon: Gift, capability: "gift_cards:view" },
   {
     label: "Delivery Slots",
@@ -52,7 +57,20 @@ export const adminNav: AdminNavItem[] = [
     capability: "delivery_slots:manage",
   },
   { label: "Customers", href: "/admin/customers", icon: Users, capability: "customers:view" },
+  {
+    label: "Abandoned Carts",
+    href: "/admin/abandoned-carts",
+    icon: ShoppingCart,
+    capability: "customers:view",
+  },
+  {
+    label: "Marketing Email",
+    href: "/admin/marketing-email",
+    icon: Send,
+    capability: "marketing:send",
+  },
   { label: "Reports", href: "/admin/reports", icon: FileBarChart, capability: "reports:view" },
+  { label: "Audit Log", href: "/admin/audit-log", icon: History, capability: "reports:view" },
   { label: "Team", href: "/admin/team", icon: UserCog, capability: "team:manage:junior" },
   { label: "Settings", href: "/admin/settings", icon: Settings, capability: "settings:view" },
 ];

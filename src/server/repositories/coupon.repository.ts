@@ -48,6 +48,10 @@ export async function updateCoupon(id: string, input: UpsertCouponInput) {
   });
 }
 
+export async function setCouponActive(id: string, isActive: boolean) {
+  return prisma.coupon.update({ where: { id }, data: { isActive } });
+}
+
 /**
  * Coupons referenced by real orders (Order.couponId, onDelete: SetNull) hard
  * delete safely — the order snapshots its own discount amount already, so

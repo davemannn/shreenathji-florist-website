@@ -1,18 +1,20 @@
 import { prisma } from "@/server/db/prisma";
 
+/** Storefront-facing — archived categories (Category.isArchived) never appear here. */
 export async function listCategories() {
-  return prisma.category.findMany({ orderBy: { sortOrder: "asc" } });
+  return prisma.category.findMany({ where: { isArchived: false }, orderBy: { sortOrder: "asc" } });
 }
 
 export async function listFeaturedCategories() {
   return prisma.category.findMany({
-    where: { isFeatured: true },
+    where: { isFeatured: true, isArchived: false },
     orderBy: { sortOrder: "asc" },
   });
 }
 
+/** Storefront-facing — an archived category's page 404s like it doesn't exist. */
 export async function findCategoryBySlug(slug: string) {
-  return prisma.category.findUnique({ where: { slug } });
+  return prisma.category.findFirst({ where: { slug, isArchived: false } });
 }
 
 // ---------------------------------------------------------------------------
@@ -70,6 +72,10 @@ export async function createCategory(input: UpsertCategoryInput) {
 
 export async function updateCategory(id: string, input: UpsertCategoryInput) {
   return prisma.category.update({ where: { id }, data: input });
+}
+
+export async function setCategoryArchived(id: string, isArchived: boolean) {
+  return prisma.category.update({ where: { id }, data: { isArchived } });
 }
 
 /** Persists a full reorder — `orderedIds` is the complete new top-to-bottom order. */

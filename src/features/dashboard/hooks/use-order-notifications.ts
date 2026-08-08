@@ -15,8 +15,16 @@ const POLL_INTERVAL_MS = 25000;
  * Polling, not SSE/WebSockets — see the admin panel plan's "Realtime"
  * section. 25s is a reasonable "realtime" bar for an admin dashboard
  * (not a chat app), and needs zero new infrastructure or dependencies.
+ *
+ * `onNewOrder` fires once per genuinely new `latestAt` value seen after
+ * mount (never on the initial load, even if pending orders already
+ * existed then) — a caller like AdminShell uses it to play a chime.
+ * Deliberately not called from every consumer of this hook: multiple
+ * mounts (e.g. the topbar badge AND the orders page's banner both calling
+ * this hook) would each run their own poll/baseline independently, so a
+ * chime callback is opt-in per call site to avoid firing twice for one order.
  */
-export function useOrderNotifications(): NotificationState {
+export function useOrderNotifications(onNewOrder?: (latestAt: string) => void): NotificationState {
   const [state, setState] = useState<NotificationState>({
     count: 0,
     latestAt: null,
@@ -24,6 +32,17 @@ export function useOrderNotifications(): NotificationState {
   });
   // undefined = haven't fetched yet; null = fetched, but nothing exists yet.
   const baselineLatestAt = useRef<string | null | undefined>(undefined);
+  // Tracks the latest value already reported via onNewOrder, so a second
+  // poll that still sees the same new order (nothing further has arrived)
+  // doesn't re-fire the callback.
+  const lastNotifiedAt = useRef<string | null>(null);
+  const onNewOrderRef = useRef(onNewOrder);
+  // Kept in sync via an effect, not a during-render assignment — the
+  // latter is a React Compiler violation (refs may only be read/written
+  // outside of render, e.g. here or inside the poll effect below).
+  useEffect(() => {
+    onNewOrderRef.current = onNewOrder;
+  }, [onNewOrder]);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,11 +58,14 @@ export function useOrderNotifications(): NotificationState {
           baselineLatestAt.current = data.latestAt;
         }
 
-        setState({
-          count: data.count,
-          latestAt: data.latestAt,
-          hasNewActivity: data.latestAt !== null && data.latestAt !== baselineLatestAt.current,
-        });
+        const latestAt = data.latestAt;
+        const isNew = latestAt !== null && latestAt !== baselineLatestAt.current;
+        if (latestAt !== null && isNew && latestAt !== lastNotifiedAt.current) {
+          lastNotifiedAt.current = latestAt;
+          onNewOrderRef.current?.(latestAt);
+        }
+
+        setState({ count: data.count, latestAt: data.latestAt, hasNewActivity: isNew });
       } catch {
         // Network hiccup — ignore, the next poll retries. Not worth an error UI for a background badge.
       }

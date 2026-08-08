@@ -31,6 +31,19 @@ export function SignInForm() {
   async function onSubmit(values: SignInValues) {
     const { data, error } = await authClient.signIn.email(values);
     if (error) {
+      // requireEmailVerification (server/auth/config.ts) makes sign-in
+      // 403 for a correct-but-unverified account — the only case this
+      // route ever returns 403 for (bad credentials is 401) — so status
+      // alone reliably distinguishes it from a wrong password.
+      if (error.status === 403) {
+        await authClient.emailOtp.sendVerificationOtp({
+          email: values.email,
+          type: "email-verification",
+        });
+        toast.info("Please verify your email first — we've sent you a new code.");
+        router.push(`/verify-email?email=${encodeURIComponent(values.email)}`);
+        return;
+      }
       toast.error(error.message ?? "Couldn't sign in. Check your email and password.");
       return;
     }
@@ -60,7 +73,15 @@ export function SignInForm() {
         {errors.email ? <p className="text-destructive text-xs">{errors.email.message}</p> : null}
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Password</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Password</Label>
+          <Link
+            href="/forgot-password"
+            className="text-muted-foreground text-xs underline underline-offset-4"
+          >
+            Forgot password?
+          </Link>
+        </div>
         <Input
           id="password"
           type="password"

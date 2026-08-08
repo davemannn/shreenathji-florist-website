@@ -14,3 +14,22 @@ export const signUpSchema = z.object({
 });
 
 export type SignUpValues = z.infer<typeof signUpSchema>;
+
+export const otpSchema = z.object({
+  otp: z.string().length(6, "Enter the 6-digit code").regex(/^\d+$/, "Digits only"),
+});
+
+export type OtpValues = z.infer<typeof otpSchema>;
+
+export const forgotPasswordSchema = z.object({
+  email: z.email("Enter a valid email address"),
+});
+
+export type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  otp: z.string().length(6, "Enter the 6-digit code").regex(/^\d+$/, "Digits only"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
