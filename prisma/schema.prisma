@@ -547,7 +547,7 @@ model StoreSettings {
 /// recent rows).
 model AuditLog {
   id              String   @id @default(cuid())
-  /// "Product" | "Category" | "Coupon" | "DeliverySlot" | "BlogPost" | "StoreSettings" | "Banner" | "Holiday" | "Customer" | "CartSnapshot" | "EmailCampaign"
+  /// "Product" | "Category" | "Coupon" | "DeliverySlot" | "BlogPost" | "StoreSettings" | "Banner" | "Holiday" | "Customer" | "CartSnapshot" | "EmailCampaign" | "GalleryItem"
   entityType      String
   entityId        String
   entityLabel     String
@@ -684,4 +684,46 @@ model EmailCampaign {
   createdByUserId String
   createdByName   String
   createdAt       DateTime @default(now())
+}
+
+/// Every /contact page submission — previously email-only (sendContactMessageAction
+/// just fired an email to the store inbox with no DB record and no admin
+/// visibility at all). Storing it now means a lost/filtered email doesn't
+/// mean a lost inquiry.
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+enum GalleryItemType {
+  IMAGE
+  VIDEO
+}
+
+/// Real customer-facing showcase (photos + short videos of actual work),
+/// admin-uploaded via Cloudinary — distinct from the earlier (unused)
+/// MediaAsset model, which was for internal image reuse across content,
+/// not a public-facing display feed with its own ordering/caption/type.
+model GalleryItem {
+  id           String          @id @default(cuid())
+  type         GalleryItemType @default(IMAGE)
+  url          String
+  cloudinaryId String
+  /// Cloudinary auto-generates a poster frame for uploaded videos — stored
+  /// so the grid can show a still image instead of loading the full video
+  /// just to render a thumbnail.
+  thumbnailUrl String?
+  caption      String?
+  sortOrder    Int             @default(0)
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+
+  @@index([isActive, sortOrder])
 }

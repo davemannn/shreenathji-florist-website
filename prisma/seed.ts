@@ -461,7 +461,7 @@ const BLOG_POSTS = [
 
 Follow these and most bouquets from us will comfortably last 6-8 days, sometimes longer for hardier varieties like chrysanthemums and carnations.`,
     coverImage: pexels("5409690", 1200),
-    authorName: "Team Shreenathji",
+    authorName: "Team Shrinathji",
     readTimeMinutes: 4,
   },
   {
@@ -479,7 +479,7 @@ Follow these and most bouquets from us will comfortably last 6-8 days, sometimes
 
 Whatever the year, pairing the bouquet with a handwritten card and their favorite cake turns a lovely gift into a memorable one. Our Anniversary collection has options across every budget, and we can add a personalized message card at checkout.`,
     coverImage: pexels("27176823", 1200),
-    authorName: "Team Shreenathji",
+    authorName: "Team Shrinathji",
     readTimeMinutes: 5,
   },
   {
@@ -497,7 +497,7 @@ Whatever the year, pairing the bouquet with a handwritten card and their favorit
 
 **Our tip:** For birthdays especially, book at least a day ahead if you can — it guarantees your exact bouquet choice and gives us room to make it extra special.`,
     coverImage: pexels("13306125", 1200),
-    authorName: "Team Shreenathji",
+    authorName: "Team Shrinathji",
     readTimeMinutes: 3,
   },
   {
@@ -519,7 +519,7 @@ Whatever the year, pairing the bouquet with a handwritten card and their favorit
 
 Can't decide? Pair a smaller cake with a bouquet — that way there's something for everyone at the table, and it looks even better in photos.`,
     coverImage: pexels("18613262", 1200),
-    authorName: "Team Shreenathji",
+    authorName: "Team Shrinathji",
     readTimeMinutes: 4,
   },
   {
@@ -541,7 +541,7 @@ Can't decide? Pair a smaller cake with a bouquet — that way there's something 
 
 Planning a wedding? Reach out to our Decoration Services team early — the best dates book up fast, and a longer lead time means more room to get every detail exactly right.`,
     coverImage: pexels("5060099", 1200),
-    authorName: "Team Shreenathji",
+    authorName: "Team Shrinathji",
     readTimeMinutes: 5,
   },
   {
@@ -563,7 +563,7 @@ Planning a wedding? Reach out to our Decoration Services team early — the best
 
 Peace Lilies will even tell you when they're thirsty — the leaves droop noticeably, then perk back up within hours of watering. It's one of the easiest plants to keep alive, which is exactly why it's one of our best-sellers.`,
     coverImage: pexels("9412363", 1200),
-    authorName: "Team Shreenathji",
+    authorName: "Team Shrinathji",
     readTimeMinutes: 4,
   },
 ];

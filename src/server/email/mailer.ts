@@ -40,7 +40,7 @@ function getTransporter(): Transporter {
 
 /** Reused by every template's "from" address unless a call site overrides it. */
 export const DEFAULT_FROM =
-  process.env.EMAIL_FROM ?? "Shreenathji Florist <support@shrinathjiflorist.com>";
+  process.env.EMAIL_FROM ?? "Shrinathji Florist <support@shrinathjiflorist.com>";
 
 /** The store's own inbox — where admin alert emails (new-order, etc.) land, as opposed to DEFAULT_FROM which is what customers see mail arrive *from*. Same mailbox in practice, just the bare address instead of the "Name <addr>" form. */
 export const STORE_INBOX = process.env.SMTP_USER ?? "support@shrinathjiflorist.com";

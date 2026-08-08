@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { footerColumns } from "@/config/navigation";
-import { siteConfig } from "@/config/site";
 
 export function FooterColumns() {
   return (
@@ -20,14 +19,8 @@ export function FooterColumns() {
         </div>
       ))}
       <div>
-        <h3 className="text-sm font-semibold tracking-wide uppercase">Areas We Deliver</h3>
-        <ul className="mt-4 flex flex-col gap-2.5">
-          {siteConfig.serviceAreas.map((area) => (
-            <li key={area} className="text-background/70 text-sm">
-              {area}
-            </li>
-          ))}
-        </ul>
+        <h3 className="text-sm font-semibold tracking-wide uppercase">Delivery</h3>
+        <p className="text-background/70 mt-4 text-sm">Delivering all over Vadodara.</p>
       </div>
     </div>
   );

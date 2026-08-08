@@ -18,12 +18,12 @@ interface OtpEmailProps {
 
 const COPY: Record<OtpEmailPurpose, { preview: string; heading: string; body: string }> = {
   "email-verification": {
-    preview: "Verify your email for Shreenathji Florist",
+    preview: "Verify your email for Shrinathji Florist",
     heading: "Verify your email address",
     body: "Enter this code to confirm your email and finish setting up your account.",
   },
   "forget-password": {
-    preview: "Reset your Shreenathji Florist password",
+    preview: "Reset your Shrinathji Florist password",
     heading: "Reset your password",
     body: "Enter this code to choose a new password. If you didn't request this, you can safely ignore this email.",
   },
@@ -58,7 +58,7 @@ export function OtpEmail({ otp, purpose }: OtpEmailProps) {
             </Text>
           </Section>
           <Text style={{ margin: "16px 0 4px", fontSize: "13px", color: "#666" }}>
-            This code expires in 5 minutes. Never share it with anyone — Shreenathji Florist staff
+            This code expires in 5 minutes. Never share it with anyone — Shrinathji Florist staff
             will never ask you for it.
           </Text>
         </Container>

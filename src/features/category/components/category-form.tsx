@@ -112,7 +112,7 @@ export function CategoryForm({ category }: { category?: AdminCategory }) {
                 <Input {...field} placeholder="flowers" />
               </FormControl>
               <FormDescription>
-                The URL for this category&rsquo;s page — e.g. shreenathjiflorist.com/shop/
+                The URL for this category&rsquo;s page — e.g. shrinathjiflorist.com/shop/
                 {field.value || "flowers"}
               </FormDescription>
               <FormMessage />

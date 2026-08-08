@@ -7,7 +7,7 @@ import { siteConfig } from "@/config/site";
 export const metadata: Metadata = {
   title: "Contact Us",
   description:
-    "Get in touch with Shreenathji Florist — call, WhatsApp or send us a message. Serving Alkapuri, Gotri, Sayajigunj, Karelibaug, Manjalpur and Old Padra Road, Vadodara.",
+    "Get in touch with Shrinathji Florist — call, WhatsApp or send us a message. Serving Alkapuri, Gotri, Sayajigunj, Karelibaug, Manjalpur and Old Padra Road, Vadodara.",
 };
 
 const DETAILS = [
@@ -23,8 +23,13 @@ const DETAILS = [
     value: siteConfig.contact.email,
     href: `mailto:${siteConfig.contact.email}`,
   },
-  { icon: MapPin, label: "Address", value: siteConfig.contact.address, href: undefined },
-  { icon: Clock, label: "Store Hours", value: "Every day · 9:00 AM – 9:00 PM", href: undefined },
+  {
+    icon: MapPin,
+    label: "Address",
+    value: siteConfig.contact.address,
+    href: siteConfig.contact.mapsUrl,
+  },
+  { icon: Clock, label: "Store Hours", value: siteConfig.contact.hoursLabel, href: undefined },
 ];
 
 export default function ContactPage() {
@@ -79,7 +84,12 @@ export default function ContactPage() {
                     {detail.label}
                   </p>
                   {detail.href ? (
-                    <a href={detail.href} className="text-sm font-medium hover:underline">
+                    <a
+                      href={detail.href}
+                      target={detail.href.startsWith("http") ? "_blank" : undefined}
+                      rel={detail.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                      className="text-sm font-medium hover:underline"
+                    >
                       {detail.value}
                     </a>
                   ) : (
@@ -92,8 +102,8 @@ export default function ContactPage() {
 
           <div className="border-border overflow-hidden rounded-xs border">
             <iframe
-              title="Shreenathji Florist location — Vadodara, Gujarat"
-              src="https://maps.google.com/maps?q=Vadodara%2C%20Gujarat&t=&z=13&ie=UTF8&iwloc=&output=embed"
+              title="Shrinathji Florist location — Vadiwadi, Vadodara"
+              src={`https://maps.google.com/maps?q=${siteConfig.contact.mapLat},${siteConfig.contact.mapLng}&z=16&ie=UTF8&iwloc=&output=embed`}
               className="h-64 w-full"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"

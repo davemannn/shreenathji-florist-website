@@ -49,7 +49,7 @@ export function AbandonedCartEmail({
             Still thinking it over, {customerName}?
           </Heading>
           <Text style={{ margin: "4px 0" }}>
-            You left these in your cart at Shreenathji Florist — they&rsquo;re still here whenever
+            You left these in your cart at Shrinathji Florist — they&rsquo;re still here whenever
             you&rsquo;re ready.
           </Text>
 

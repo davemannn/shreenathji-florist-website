@@ -20,7 +20,7 @@ export async function subscribeToNewsletterAction(input: NewsletterSubscribeValu
     const settings = await getStoreSettings();
     await sendEmail({
       to: subscriber.email,
-      subject: "Confirm your subscription — Shreenathji Florist",
+      subject: "Confirm your subscription — Shrinathji Florist",
       react: NewsletterConfirmEmail({
         confirmUrl: `${siteConfig.url}/newsletter/confirm?token=${subscriber.confirmToken}`,
         storeAddressLine: settings.registeredAddressLine,

@@ -59,8 +59,8 @@ export const auth = betterAuth({
           to: email,
           subject:
             type === "email-verification"
-              ? "Verify your email — Shreenathji Florist"
-              : "Reset your password — Shreenathji Florist",
+              ? "Verify your email — Shrinathji Florist"
+              : "Reset your password — Shrinathji Florist",
           react: OtpEmail({ otp, purpose: type as OtpEmailPurpose }),
         });
       },

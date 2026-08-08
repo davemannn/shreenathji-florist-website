@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
+import { Logo } from "@/components/shared/logo";
 import type { AdminRole } from "@/server/auth/permissions";
 import { playOrderChime, unlockChimeAudio } from "@/lib/chime";
 import { useOrderNotifications } from "../hooks/use-order-notifications";
@@ -73,10 +74,8 @@ export function AdminShell({ role, name, email, children }: AdminShellProps) {
     <div className="bg-muted/30 min-h-screen">
       {/* Desktop sidebar */}
       <aside className="bg-background fixed inset-y-0 left-0 hidden w-60 flex-col border-r lg:flex">
-        <div className="flex h-14 items-center border-b px-4">
-          <Link href="/admin" className="font-heading text-lg">
-            Shreenathji <span className="text-brand">Admin</span>
-          </Link>
+        <div className="flex h-16 items-center border-b px-4">
+          <Logo dark href="/admin" className="h-11 w-11" />
         </div>
         <div className="flex-1 overflow-y-auto p-3">
           <AdminNavList role={role} />
@@ -88,7 +87,7 @@ export function AdminShell({ role, name, email, children }: AdminShellProps) {
         <SheetContent side="left" className="w-64 p-0">
           <SheetHeader className="border-b">
             <SheetTitle>
-              Shreenathji <span className="text-brand">Admin</span>
+              <Logo dark href="/admin" className="h-11 w-11" />
             </SheetTitle>
           </SheetHeader>
           <div className="p-3">

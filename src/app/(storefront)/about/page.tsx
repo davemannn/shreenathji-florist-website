@@ -9,7 +9,7 @@ import { pexelsPhoto } from "@/lib/stock-photo";
 export const metadata: Metadata = {
   title: "About Us",
   description:
-    "The story of Shreenathji Florist — a family-run flower shop in Vadodara growing from a single stall into the city's trusted name for flowers, cakes and gifting.",
+    "The story of Shrinathji Florist — a family-run flower shop in Vadodara growing from a single stall into the city's trusted name for flowers, cakes and gifting.",
 };
 
 const TIMELINE = [
@@ -18,7 +18,7 @@ const TIMELINE = [
     icon: Sprout,
     title: "A Small Beginning",
     description:
-      "Shreenathji Florist opened as a single flower stall near Sayajigunj, hand-tying bouquets every morning before sunrise.",
+      "Shrinathji Florist opened as a single flower stall near Sayajigunj, hand-tying bouquets every morning before sunrise.",
   },
   {
     year: "2013",
@@ -46,7 +46,7 @@ const TIMELINE = [
     icon: Award,
     title: "Serving Vadodara Online",
     description:
-      "Today, Shreenathji Florist serves thousands of happy customers across Alkapuri, Gotri, Sayajigunj, Karelibaug, Manjalpur and Old Padra Road — now online too.",
+      "Today, Shrinathji Florist serves thousands of happy customers across Alkapuri, Gotri, Sayajigunj, Karelibaug, Manjalpur and Old Padra Road — now online too.",
   },
 ];
 
@@ -59,7 +59,7 @@ export default function AboutPage() {
             <p className="text-brand text-xs font-semibold tracking-[0.2em] uppercase">Our Story</p>
             <h1 className="mt-3 text-3xl md:text-5xl">Grown From A Single Flower Stall</h1>
             <p className="text-muted-foreground mt-5 text-sm md:text-base">
-              Shreenathji Florist started in 2009 as a small flower stall in Vadodara, run by a
+              Shrinathji Florist started in 2009 as a small flower stall in Vadodara, run by a
               family that believed every celebration — and every quiet condolence — deserves flowers
               chosen with care. Nearly two decades later, we&apos;re still hand-picking every stem,
               still delivering ourselves across the city, and still doing it the way we started:
@@ -83,7 +83,7 @@ export default function AboutPage() {
           </div>
           <ContentImage
             src={pexelsPhoto("28115373", 1200)}
-            alt="Fresh hand-tied bouquet at Shreenathji Florist"
+            alt="Fresh hand-tied bouquet at Shrinathji Florist"
             className="aspect-4/5 rounded-xs"
             sizes="(min-width: 1024px) 50vw, 100vw"
           />

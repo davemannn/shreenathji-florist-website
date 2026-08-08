@@ -89,7 +89,7 @@ async function sendOrderConfirmationEmail(
     const settings = await getStoreSettings();
     await sendEmail({
       to: customer.email,
-      subject: `Order ${order.orderNumber} confirmed — Shreenathji Florist`,
+      subject: `Order ${order.orderNumber} confirmed — Shrinathji Florist`,
       react: OrderConfirmationEmail({
         customerName: customer.name,
         orderNumber: order.orderNumber,

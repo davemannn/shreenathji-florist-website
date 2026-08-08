@@ -34,7 +34,7 @@ export function GiftCardEmail({
   return (
     <Html>
       <Head />
-      <Preview>{`A ${formatINR(amount)} Shreenathji Florist gift card ${isForSelf ? "for you" : `from ${purchaserName}`}`}</Preview>
+      <Preview>{`A ${formatINR(amount)} Shrinathji Florist gift card ${isForSelf ? "for you" : `from ${purchaserName}`}`}</Preview>
       <Body style={{ fontFamily: "sans-serif", backgroundColor: "#f6f6f6", padding: "24px" }}>
         <Container style={{ backgroundColor: "#ffffff", padding: "24px", borderRadius: "8px" }}>
           <Heading as="h2" style={{ fontSize: "18px" }}>
@@ -42,7 +42,7 @@ export function GiftCardEmail({
           </Heading>
           {!isForSelf ? (
             <Text style={{ margin: "4px 0" }}>
-              <strong>{purchaserName}</strong> sent you a Shreenathji Florist gift card.
+              <strong>{purchaserName}</strong> sent you a Shrinathji Florist gift card.
             </Text>
           ) : null}
           <Section

@@ -12,7 +12,7 @@ export function SiteFooter() {
     <footer className="text-background bg-[#222222]">
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:px-6 lg:grid-cols-[1.2fr_2fr] lg:px-8">
         <div className="flex flex-col gap-4">
-          <Logo className="text-background" />
+          <Logo />
           <p className="text-background/70 max-w-sm text-sm">{siteConfig.description}</p>
           <div className="flex items-center gap-3">
             <a

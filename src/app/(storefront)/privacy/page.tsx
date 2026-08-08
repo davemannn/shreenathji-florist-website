@@ -3,7 +3,7 @@ import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How Shreenathji Florist collects, uses and protects your personal information.",
+  description: "How Shrinathji Florist collects, uses and protects your personal information.",
 };
 
 const LAST_UPDATED = "August 5, 2026";

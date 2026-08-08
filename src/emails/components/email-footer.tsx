@@ -24,7 +24,7 @@ export function EmailFooter({ addressLine, city, pincode, unsubscribeUrl }: Emai
     <>
       <Hr style={{ margin: "24px 0 12px", borderColor: "#eee" }} />
       <Text style={{ margin: "2px 0", fontSize: "11px", color: "#999" }}>
-        Shreenathji Florist{address ? ` · ${address}` : ""}
+        Shrinathji Florist{address ? ` · ${address}` : ""}
       </Text>
       {unsubscribeUrl ? (
         <Text style={{ margin: "2px 0", fontSize: "11px", color: "#999" }}>

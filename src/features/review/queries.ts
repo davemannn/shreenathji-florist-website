@@ -31,10 +31,13 @@ const TESTIMONIALS: Testimonial[] = [
   },
 ];
 
-// TODO: replace with real Google Places API data once that integration exists.
+// Real aggregate from the business's Google Business Profile listing.
+// Individual review quotes below are still placeholder text (no API
+// integration exists to pull the real ones) — flagged, not silently
+// presented as real customer quotes with real names attached.
 const GOOGLE_REVIEW_AGGREGATE: GoogleReviewAggregate = {
-  rating: 4.7,
-  count: 210,
+  rating: 4.3,
+  count: 18,
 };
 
 // TODO: replace with real Google Places API data once that integration exists.

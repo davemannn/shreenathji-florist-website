@@ -12,7 +12,13 @@ import { cloudinary } from "@/server/storage/cloudinary";
  */
 export async function POST(request: Request) {
   try {
-    await requireAdminCapability(["products:manage", "categories:manage", "blog:manage"]);
+    await requireAdminCapability([
+      "products:manage",
+      "categories:manage",
+      "blog:manage",
+      "banners:manage",
+      "gallery:manage",
+    ]);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

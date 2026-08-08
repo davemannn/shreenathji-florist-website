@@ -3,7 +3,7 @@ import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Terms of Use",
-  description: "Terms and conditions for using the Shreenathji Florist website and placing orders.",
+  description: "Terms and conditions for using the Shrinathji Florist website and placing orders.",
 };
 
 const LAST_UPDATED = "August 5, 2026";

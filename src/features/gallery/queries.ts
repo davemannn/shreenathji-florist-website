@@ -1,15 +1,31 @@
-import { pexelsPhoto } from "@/lib/stock-photo";
-import type { GalleryImage } from "./types";
+import {
+  listActiveGalleryItems,
+  listGalleryItemsAdmin as listGalleryItemsAdminRepo,
+} from "@/server/repositories/gallery-item.repository";
+import type { AdminGalleryItem, GalleryDisplayItem, GalleryItemType } from "./types";
 
-const GALLERY_PHOTO_IDS = ["38392600", "20435048", "19363509", "5409707", "4034248", "8865150"];
+export async function getGalleryDisplayItems(): Promise<GalleryDisplayItem[]> {
+  const items = await listActiveGalleryItems();
+  return items.map((item) => ({
+    id: item.id,
+    type: item.type as GalleryItemType,
+    url: item.url,
+    thumbnailUrl: item.thumbnailUrl ?? undefined,
+    caption: item.caption ?? undefined,
+  }));
+}
 
-const GALLERY_IMAGES: GalleryImage[] = GALLERY_PHOTO_IDS.map((photoId, index) => ({
-  id: String(index + 1),
-  imageAlt: `Gallery photo ${index + 1}`,
-  href: "https://instagram.com/shreenathjiflorist",
-  imageUrl: pexelsPhoto(photoId, 400),
-}));
-
-export async function getGalleryImages(): Promise<GalleryImage[]> {
-  return GALLERY_IMAGES;
+export async function listGalleryItemsAdmin(): Promise<AdminGalleryItem[]> {
+  const items = await listGalleryItemsAdminRepo();
+  return items.map((item) => ({
+    id: item.id,
+    type: item.type as GalleryItemType,
+    url: item.url,
+    thumbnailUrl: item.thumbnailUrl ?? undefined,
+    caption: item.caption ?? undefined,
+    cloudinaryId: item.cloudinaryId,
+    isActive: item.isActive,
+    sortOrder: item.sortOrder,
+    createdAt: item.createdAt.toISOString(),
+  }));
 }

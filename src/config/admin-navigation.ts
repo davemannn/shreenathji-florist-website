@@ -17,6 +17,8 @@ import {
   History,
   ShoppingCart,
   Send,
+  MessageSquare,
+  GalleryHorizontal,
 } from "lucide-react";
 import type { Capability } from "@/server/auth/permissions";
 
@@ -49,6 +51,12 @@ export const adminNav: AdminNavItem[] = [
   { label: "Coupons", href: "/admin/coupons", icon: Ticket, capability: "coupons:manage" },
   { label: "Blog", href: "/admin/blog", icon: Newspaper, capability: "blog:manage" },
   { label: "Banners", href: "/admin/banners", icon: Image, capability: "banners:manage" },
+  {
+    label: "Gallery",
+    href: "/admin/gallery",
+    icon: GalleryHorizontal,
+    capability: "gallery:manage",
+  },
   { label: "Gift Cards", href: "/admin/gift-cards", icon: Gift, capability: "gift_cards:view" },
   {
     label: "Delivery Slots",
@@ -57,6 +65,12 @@ export const adminNav: AdminNavItem[] = [
     capability: "delivery_slots:manage",
   },
   { label: "Customers", href: "/admin/customers", icon: Users, capability: "customers:view" },
+  {
+    label: "Contact Messages",
+    href: "/admin/contact-messages",
+    icon: MessageSquare,
+    capability: "customers:view",
+  },
   {
     label: "Abandoned Carts",
     href: "/admin/abandoned-carts",

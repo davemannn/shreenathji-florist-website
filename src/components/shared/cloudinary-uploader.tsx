@@ -37,7 +37,7 @@ export function CloudinaryUploader({
     <CldUploadWidget
       signatureEndpoint="/api/admin/cloudinary-signature"
       options={{
-        folder: `shreenathji/${folder}`,
+        folder: `shrinathji/${folder}`,
         sources: ["local"],
         multiple: false,
         maxFiles: 1,

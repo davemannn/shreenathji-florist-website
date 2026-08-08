@@ -106,7 +106,7 @@ export async function verifyGiftCardPaymentAction(input: VerifyGiftCardPaymentIn
     await sendEmail({
       to: isForSelf ? user.email : (giftCard.recipientEmail ?? user.email),
       subject: isForSelf
-        ? "Your Shreenathji Florist gift card"
+        ? "Your Shrinathji Florist gift card"
         : `${user.name} sent you a gift card!`,
       react: GiftCardEmail({
         code: giftCard.code,

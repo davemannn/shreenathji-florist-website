@@ -6,7 +6,7 @@ import { Pagination } from "@/components/shared/pagination";
 export const metadata: Metadata = {
   title: "Blog",
   description:
-    "Flower care tips, occasion guides, and decor ideas from Shreenathji Florist — Vadodara's flower, cake & gifting shop.",
+    "Flower care tips, occasion guides, and decor ideas from Shrinathji Florist — Vadodara's flower, cake & gifting shop.",
 };
 
 const PAGE_SIZE = 9;

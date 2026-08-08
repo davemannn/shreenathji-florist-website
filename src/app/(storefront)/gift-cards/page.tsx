@@ -8,7 +8,7 @@ import { GiftCardForm } from "@/features/gift-card/components/gift-card-form";
 export const metadata: Metadata = {
   title: "Gift Cards",
   description:
-    "Send a Shreenathji Florist gift card — for yourself or someone else, any amount, delivered by email.",
+    "Send a Shrinathji Florist gift card — for yourself or someone else, any amount, delivered by email.",
 };
 
 export default async function GiftCardsPage() {

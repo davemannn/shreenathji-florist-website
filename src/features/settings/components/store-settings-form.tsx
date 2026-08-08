@@ -197,7 +197,7 @@ export function StoreSettingsForm({
             <FormItem>
               <FormLabel>Legal business name (optional)</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Shreenathji Florist" disabled={readOnly} />
+                <Input {...field} placeholder="Shrinathji Florist" disabled={readOnly} />
               </FormControl>
               <FormDescription>Shown on invoices if different from the site name.</FormDescription>
             </FormItem>

@@ -12,7 +12,7 @@ import { siteConfig } from "@/config/site";
 export const metadata: Metadata = {
   title: "FAQs",
   description:
-    "Answers to common questions about ordering, delivery, payment and returns at Shreenathji Florist.",
+    "Answers to common questions about ordering, delivery, payment and returns at Shrinathji Florist.",
 };
 
 const FAQ_GROUPS = [

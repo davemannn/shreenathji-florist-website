@@ -64,7 +64,7 @@ export async function openRazorpayCheckout(params: OpenRazorpayCheckoutParams) {
     amount: params.amount,
     currency: "INR",
     order_id: params.razorpayOrderId,
-    name: "Shreenathji Florist",
+    name: "Shrinathji Florist",
     description: params.description ?? "Order payment",
     prefill: { name: params.recipientName, contact: params.recipientPhone },
     theme: { color: "#c9105f" },

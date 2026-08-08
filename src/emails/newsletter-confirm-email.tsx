@@ -28,14 +28,14 @@ export function NewsletterConfirmEmail({
   return (
     <Html>
       <Head />
-      <Preview>Confirm your Shreenathji Florist newsletter subscription</Preview>
+      <Preview>Confirm your Shrinathji Florist newsletter subscription</Preview>
       <Body style={{ fontFamily: "sans-serif", backgroundColor: "#f6f6f6", padding: "24px" }}>
         <Container style={{ backgroundColor: "#ffffff", padding: "24px", borderRadius: "8px" }}>
           <Heading as="h2" style={{ fontSize: "18px" }}>
             One more step
           </Heading>
           <Text style={{ margin: "4px 0" }}>
-            Confirm your email to start receiving offers and updates from Shreenathji Florist.
+            Confirm your email to start receiving offers and updates from Shrinathji Florist.
           </Text>
           <Section style={{ margin: "24px 0", textAlign: "center" }}>
             <Link
