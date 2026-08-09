@@ -19,7 +19,7 @@ CREATE TABLE `SubscriptionPlan` (
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updatedAt` DATETIME(3) NOT NULL,
   PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4;
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE INDEX `SubscriptionPlan_isActive_sortOrder_idx` ON `SubscriptionPlan`(`isActive`, `sortOrder`);
 
@@ -32,7 +32,7 @@ CREATE TABLE `SubscriptionPlanInterval` (
   `razorpayPlanId` VARCHAR(191) NULL,
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4;
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE UNIQUE INDEX `SubscriptionPlanInterval_subscriptionPlanId_interval_key` ON `SubscriptionPlanInterval`(`subscriptionPlanId`, `interval`);
 
@@ -58,7 +58,7 @@ CREATE TABLE `CustomerSubscription` (
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   `updatedAt` DATETIME(3) NOT NULL,
   PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4;
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE UNIQUE INDEX `CustomerSubscription_razorpaySubscriptionId_key` ON `CustomerSubscription`(`razorpaySubscriptionId`);
 CREATE INDEX `CustomerSubscription_userId_idx` ON `CustomerSubscription`(`userId`);

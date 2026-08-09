@@ -13,7 +13,7 @@ CREATE TABLE `Testimonial` (
   `sortOrder` INTEGER NOT NULL DEFAULT 0,
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4;
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE INDEX `Testimonial_isActive_sortOrder_idx` ON `Testimonial`(`isActive`, `sortOrder`);
 
@@ -26,7 +26,7 @@ CREATE TABLE `FaqItem` (
   `sortOrder` INTEGER NOT NULL DEFAULT 0,
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4;
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE INDEX `FaqItem_isActive_sortOrder_idx` ON `FaqItem`(`isActive`, `sortOrder`);
 

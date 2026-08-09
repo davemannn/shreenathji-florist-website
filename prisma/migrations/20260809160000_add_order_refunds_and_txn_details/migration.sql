@@ -27,7 +27,7 @@ CREATE TABLE `OrderRefund` (
   `processedByUserId` VARCHAR(191) NOT NULL,
   `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4;
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE INDEX `OrderRefund_orderId_idx` ON `OrderRefund`(`orderId`);
 
