@@ -1,7 +1,6 @@
-import fs from "node:fs";
-import path from "node:path";
 import crypto from "node:crypto";
 import { prisma } from "./prisma";
+import { MIGRATIONS } from "./migrations-data";
 
 /**
  * Splits a migration.sql file into individual statements to run one at a
@@ -34,23 +33,26 @@ function splitSqlStatements(sql: string): string[] {
  * used only because the real thing has proven unreliable to invoke on
  * Hostinger: three straight deploys failed trying to spawn
  * `node_modules/.bin/prisma` (ENOENT) even after moving the `prisma`
- * package to a real dependency — something about that host's deploy
- * pipeline doesn't keep it (or any CLI-only package) available in the
- * actual runtime environment, and there's no way to inspect that pipeline
- * from here to find out why. This only depends on `@prisma/client` +
- * `@prisma/adapter-mariadb`, which are proven present and working (the
- * app's own queries already connect and run through them) — no shelling
- * out to anything.
+ * package to a real dependency, and once that was worked around, a fourth
+ * failed because `prisma/migrations/` itself isn't even present in
+ * Hostinger's runtime environment — evidently only `.next` and a pruned
+ * `node_modules` survive whatever packaging step happens between build and
+ * boot there. This only depends on `@prisma/client` + `@prisma/adapter-
+ * mariadb` (proven present — the app's own queries already run through
+ * them) and MIGRATIONS from migrations-data.ts, an auto-generated file
+ * that embeds every migration.sql's contents as plain committed TS source
+ * (see that generator's own doc comment) — an ordinary `import`, so
+ * Next's build-time file tracer includes it the same as any other module,
+ * unlike a runtime `fs.readFileSync` it has no way to see coming.
  *
- * Deliberately narrow: applies each migrations/<name>/migration.sql file
- * (see splitSqlStatements below for exactly what that does and doesn't
- * handle) against the DB, in directory
- * order, skipping ones already recorded in `_prisma_migrations`. Records
- * into the exact same `_prisma_migrations` table Prisma's own CLI uses
- * (same columns, same checksum algorithm — sha256 hex of the file), so a
- * real `prisma migrate deploy` run later (once/if the CLI issue is ever
- * resolved) sees a consistent, recognized history rather than either
- * re-applying these or flagging them as drift.
+ * Deliberately narrow: applies each migration's SQL (see
+ * splitSqlStatements above for exactly what that does and doesn't handle)
+ * against the DB, in the embedded order, skipping ones already recorded
+ * in `_prisma_migrations`. Records into the exact same `_prisma_migrations`
+ * table Prisma's own CLI uses (same columns, same checksum algorithm —
+ * sha256 hex of the file), so a real `prisma migrate deploy` run later
+ * (once/if the CLI issue is ever resolved) sees a consistent, recognized
+ * history rather than either re-applying these or flagging them as drift.
  *
  * MySQL/MariaDB DDL auto-commits per statement (no transactions to wrap
  * here) — matches how Prisma's own migrate engine already treats MySQL.
@@ -60,18 +62,6 @@ function splitSqlStatements(sql: string): string[] {
  * migration concurrently.
  */
 export async function runPendingMigrations(): Promise<void> {
-  const migrationsDir = path.join(process.cwd(), "prisma", "migrations");
-  if (!fs.existsSync(migrationsDir)) {
-    console.error("[migrate] prisma/migrations not found at", migrationsDir, "— skipping.");
-    return;
-  }
-
-  const names = fs
-    .readdirSync(migrationsDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort();
-
   const LOCK_NAME = "shrinathji_migrate_deploy";
   const [{ acquired } = { acquired: 0 }] = await prisma.$queryRawUnsafe<{ acquired: number }[]>(
     `SELECT GET_LOCK(?, 30) AS acquired`,
@@ -104,18 +94,17 @@ export async function runPendingMigrations(): Promise<void> {
     );
     const applied = new Set(appliedRows.map((row) => row.migration_name));
 
-    const pending = names.filter((name) => !applied.has(name));
+    const pending = MIGRATIONS.filter((migration) => !applied.has(migration.name));
     if (pending.length === 0) {
       console.log("[migrate] up to date — no pending migrations.");
       return;
     }
-    console.log(`[migrate] ${pending.length} pending migration(s):`, pending.join(", "));
+    console.log(
+      `[migrate] ${pending.length} pending migration(s):`,
+      pending.map((m) => m.name).join(", "),
+    );
 
-    for (const name of pending) {
-      const sqlPath = path.join(migrationsDir, name, "migration.sql");
-      if (!fs.existsSync(sqlPath)) continue; // e.g. migration_lock.toml's directory-less sibling — not a real migration
-
-      const sql = fs.readFileSync(sqlPath, "utf-8");
+    for (const { name, sql } of pending) {
       const checksum = crypto.createHash("sha256").update(sql).digest("hex");
       const id = crypto.randomUUID();
       const statements = splitSqlStatements(sql);
