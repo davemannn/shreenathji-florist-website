@@ -1,78 +1,31 @@
 import {
+  findUserReviewForProduct,
+  hasUserPurchasedProduct,
   listReviewsAdmin as listReviewsAdminRepo,
   type ListReviewsAdminParams,
 } from "@/server/repositories/review.repository";
-import type { AdminReview, GoogleReview, GoogleReviewAggregate, Testimonial } from "./types";
+import type { AdminReview } from "./types";
 
-// Placeholder content — clearly generic, not written to resemble specific
-// real customers. Replace with real testimonials / real Google Reviews API
-// data before launch; do not ship these as-is.
+// ---------------------------------------------------------------------------
+// Storefront — product detail page review-submission state.
+// ---------------------------------------------------------------------------
 
-const TESTIMONIALS: Testimonial[] = [
-  {
-    id: "1",
-    quote:
-      "The bouquet arrived exactly on time and looked even better than the photos. Will definitely order again.",
-    authorName: "Happy Customer",
-    rating: 5,
-  },
-  {
-    id: "2",
-    quote:
-      "Midnight delivery for my wife's birthday went off perfectly. Great communication throughout.",
-    authorName: "Verified Buyer",
-    rating: 5,
-  },
-  {
-    id: "3",
-    quote: "Flowers stayed fresh for over a week. Good value and friendly service.",
-    authorName: "Local Customer",
-    rating: 4,
-  },
-];
-
-// Real aggregate from the business's Google Business Profile listing.
-// Individual review quotes below are still placeholder text (no API
-// integration exists to pull the real ones) — flagged, not silently
-// presented as real customer quotes with real names attached.
-const GOOGLE_REVIEW_AGGREGATE: GoogleReviewAggregate = {
-  rating: 4.3,
-  count: 18,
-};
-
-// TODO: replace with real Google Places API data once that integration exists.
-const GOOGLE_REVIEWS: GoogleReview[] = [
-  {
-    id: "1",
-    quote:
-      "Reliable same-day delivery and beautiful arrangements. Highly recommend for last-minute gifts.",
-    authorName: "Google User",
-    rating: 5,
-  },
-  {
-    id: "2",
-    quote: "Ordered a cake and flower combo — both arrived fresh and on time.",
-    authorName: "Google User",
-    rating: 5,
-  },
-  {
-    id: "3",
-    quote: "Good variety and fair pricing compared to other florists in the area.",
-    authorName: "Google User",
-    rating: 4,
-  },
-];
-
-export async function getTestimonials(): Promise<Testimonial[]> {
-  return TESTIMONIALS;
+export interface ReviewEligibility {
+  /** True if this signed-in user has already submitted a review for this product — the form shows a "thanks, already reviewed" state instead. */
+  hasReviewed: boolean;
+  /** True if they have a DELIVERED order containing this product — shown as a "Verified Purchase" badge, not a hard gate. */
+  isVerifiedPurchase: boolean;
 }
 
-export async function getGoogleReviewAggregate(): Promise<GoogleReviewAggregate> {
-  return GOOGLE_REVIEW_AGGREGATE;
-}
-
-export async function getGoogleReviews(): Promise<GoogleReview[]> {
-  return GOOGLE_REVIEWS;
+export async function getReviewEligibility(
+  productId: string,
+  userId: string,
+): Promise<ReviewEligibility> {
+  const [existing, purchased] = await Promise.all([
+    findUserReviewForProduct(productId, userId),
+    hasUserPurchasedProduct(productId, userId),
+  ]);
+  return { hasReviewed: !!existing, isVerifiedPurchase: purchased };
 }
 
 // ---------------------------------------------------------------------------

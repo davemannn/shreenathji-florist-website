@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Heart, Search, ShoppingBag, User } from "lucide-react";
+import { Heart, ShoppingBag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartItemCount } from "@/stores/cart-store";
 import { useWishlistCount } from "@/stores/wishlist-store";
 import { useSession } from "@/lib/auth-client";
+import { HeaderSearch } from "./header-search";
 
 function CountBadge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -19,8 +20,9 @@ function CountBadge({ count }: { count: number }) {
 /**
  * Search/account/wishlist/cart icon cluster. Cart and wishlist are both
  * real persisted zustand stores (localStorage) — see src/stores/cart-store.ts
- * and src/stores/wishlist-store.ts. Search has no backend yet; it links to a
- * future /search route rather than pretending to work.
+ * and src/stores/wishlist-store.ts. Search expands in place (see
+ * HeaderSearch) with live debounced suggestions, falling through to the
+ * full /search page for anything beyond a quick pick.
  */
 export function HeaderActions() {
   const cartCount = useCartItemCount();
@@ -30,15 +32,7 @@ export function HeaderActions() {
 
   return (
     <div className="flex items-center gap-1">
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label="Search"
-        nativeButton={false}
-        render={<Link href="/search" />}
-      >
-        <Search aria-hidden="true" />
-      </Button>
+      <HeaderSearch />
       <Button
         variant="ghost"
         size="icon"

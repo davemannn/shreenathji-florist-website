@@ -1,35 +1,23 @@
 "use client";
 
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
-import { effectiveSlotCharge, todayIsoIst } from "@/lib/delivery";
-import type { StoreSettings } from "@/features/settings/types";
-import { useCartStore, type CartLineItem, type AppliedCoupon } from "@/stores/cart-store";
+import { useCartStore } from "@/stores/cart-store";
 import type { CheckoutValues } from "../validations";
-import type { DeliverySlotOption } from "../types";
+import type { CheckoutTotals } from "../hooks/use-checkout-totals";
 
 interface OrderSummaryProps {
-  deliverySlots: DeliverySlotOption[];
+  totals: CheckoutTotals;
   submitting: boolean;
-  storeSettings: StoreSettings;
+  /** e.g. the address is outside the delivery radius — blocks placing the order without changing the button's own "Placing Order…" label. */
+  blocked?: boolean;
 }
 
-export function OrderSummary({ deliverySlots, submitting, storeSettings }: OrderSummaryProps) {
+export function OrderSummary({ totals, submitting, blocked }: OrderSummaryProps) {
   const items = useCartStore((state) => state.items);
   const appliedCoupon = useCartStore((state) => state.appliedCoupon);
-  const { watch } = useFormContext<CheckoutValues>();
-  const selectedSlotId = watch("deliverySlotId");
-  const deliveryDate = watch("deliveryDate");
-
-  const totals = computeTotals(
-    items,
-    appliedCoupon,
-    deliverySlots,
-    selectedSlotId,
-    deliveryDate,
-    storeSettings,
-  );
+  const { control } = useFormContext<CheckoutValues>();
 
   return (
     <div className="border-border sticky top-24 flex h-fit flex-col gap-4 rounded-xs border p-5">
@@ -67,41 +55,50 @@ export function OrderSummary({ deliverySlots, submitting, storeSettings }: Order
         </div>
       </div>
 
-      <Button type="submit" variant="brand" size="lg" disabled={submitting || items.length === 0}>
+      {totals.walletBalance > 0 ? (
+        <div className="border-border flex flex-col gap-1.5 border-t pt-3 text-sm">
+          <Controller
+            control={control}
+            name="useWallet"
+            render={({ field }) => (
+              <label className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="accent-brand size-4"
+                    checked={field.value}
+                    onChange={(e) => field.onChange(e.target.checked)}
+                  />
+                  Use wallet balance ({formatINR(totals.walletBalance)} available)
+                </span>
+              </label>
+            )}
+          />
+          {totals.walletAmountUsed > 0 ? (
+            <>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Wallet applied</span>
+                <span className="text-brand">-{formatINR(totals.walletAmountUsed)}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2 text-base font-semibold">
+                <span>
+                  {totals.remainingTotal === 0 ? "Total (fully paid)" : "Remaining to pay"}
+                </span>
+                <span>{formatINR(totals.remainingTotal)}</span>
+              </div>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
+      <Button
+        type="submit"
+        variant="brand"
+        size="lg"
+        disabled={submitting || items.length === 0 || blocked}
+      >
         {submitting ? "Placing Order…" : "Place Order"}
       </Button>
     </div>
   );
-}
-
-function computeTotals(
-  items: CartLineItem[],
-  appliedCoupon: AppliedCoupon | null,
-  deliverySlots: DeliverySlotOption[],
-  selectedSlotId: string | undefined,
-  deliveryDate: string,
-  storeSettings: StoreSettings,
-) {
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const discount = appliedCoupon?.discount ?? 0;
-  const afterDiscount = subtotal - discount;
-  const selectedSlot = deliverySlots.find((slot) => slot.id === selectedSlotId);
-  // Express/Instant is always "today" regardless of the date field (it's
-  // hidden once selected) — everything else prices off the picked date.
-  const slotCharge = selectedSlot
-    ? effectiveSlotCharge(
-        selectedSlot.type,
-        selectedSlot.type === "FIXED" ? todayIsoIst() : deliveryDate,
-        selectedSlot.extraCharge,
-        undefined,
-        storeSettings.midnightCutoffHour,
-        storeSettings.midnightCharge,
-      )
-    : 0;
-  const deliveryCharge =
-    (afterDiscount >= storeSettings.freeDeliveryThreshold ? 0 : storeSettings.baseDeliveryCharge) +
-    slotCharge;
-  const total = afterDiscount + deliveryCharge;
-
-  return { subtotal, discount, deliveryCharge, total };
 }

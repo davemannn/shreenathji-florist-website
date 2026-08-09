@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -8,6 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import {
+  PlaceAutocompleteInput,
+  type PlaceResult,
+} from "@/components/shared/place-autocomplete-input";
+import { isGoogleMapsConfigured } from "@/lib/google-maps";
 import {
   Form,
   FormField,
@@ -49,6 +55,14 @@ export function StoreSettingsForm({
       registeredPincode: settings.registeredPincode ?? "",
     },
   });
+
+  const storeLatitude = form.watch("storeLatitude") as number | undefined;
+  const storeLongitude = form.watch("storeLongitude") as number | undefined;
+
+  function handleStoreLocationSelected(place: PlaceResult) {
+    form.setValue("storeLatitude", place.latitude, { shouldDirty: true });
+    form.setValue("storeLongitude", place.longitude, { shouldDirty: true });
+  }
 
   async function onSubmit(values: StoreSettingsFormValues) {
     try {
@@ -125,34 +139,61 @@ export function StoreSettingsForm({
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="expressCharge"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Express / Instant charge (₹)</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} value={field.value as number} disabled={readOnly} />
-              </FormControl>
-              <FormDescription>Shown on the Same Day Delivery page.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <p className="bg-muted text-muted-foreground -mt-1 rounded-md p-3 text-xs">
+          Express/Instant and Midnight each have their own ₹ surcharge, set per-slot on the{" "}
+          <Link href="/admin/delivery-slots" className="text-brand underline underline-offset-2">
+            Delivery Slots
+          </Link>{" "}
+          page — not here. Whatever a slot is set to is both what gets charged at checkout and
+          what&rsquo;s advertised on its marketing page, so there&rsquo;s only one number to keep in
+          sync.
+        </p>
+
+        <Separator className="my-2" />
+        <div>
+          <h2 className="text-sm font-semibold">Delivery Area</h2>
+          <p className="text-muted-foreground text-xs">
+            Checkout warns (and blocks placing the order) when a customer&rsquo;s address — picked
+            via the map search, not a manually-typed one — is farther than this from the store.
+            Skipped entirely until a store location is set below.
+          </p>
+        </div>
+
+        {!isGoogleMapsConfigured() ? (
+          <p className="bg-muted text-muted-foreground rounded-md p-3 text-xs">
+            Map search isn&rsquo;t configured yet (missing{" "}
+            <code className="font-mono">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>) — the delivery-area
+            check stays off until a store location is set, which currently requires that key.
+          </p>
+        ) : (
+          <PlaceAutocompleteInput
+            label="Store location"
+            placeholder="Search for the store's address…"
+            onSelect={handleStoreLocationSelected}
+            disabled={readOnly}
+          />
+        )}
+        {storeLatitude != null && storeLongitude != null ? (
+          <p className="text-muted-foreground -mt-2 text-xs">
+            Set: {storeLatitude.toFixed(5)}, {storeLongitude.toFixed(5)}
+          </p>
+        ) : null}
 
         <FormField
           control={form.control}
-          name="midnightCharge"
+          name="deliveryRadiusKm"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Midnight delivery charge (₹)</FormLabel>
+              <FormLabel>Delivery radius (km)</FormLabel>
               <FormControl>
-                <Input type="number" {...field} value={field.value as number} disabled={readOnly} />
+                <Input
+                  type="number"
+                  {...field}
+                  value={field.value as number}
+                  disabled={readOnly}
+                  className="max-w-32"
+                />
               </FormControl>
-              <FormDescription>
-                The Midnight slot&rsquo;s own surcharge, and what Express carries once booked
-                same-day past the cutoff above.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

@@ -24,6 +24,9 @@ const STATUS_VARIANT: Record<
   "secondary" | "outline" | "destructive"
 > = {
   PAID: "secondary",
+  // Not a real gift-card state (no refund flow exists for gift card
+  // purchases) — included only because paymentStatus shares Order's enum.
+  PARTIALLY_REFUNDED: "outline",
   PENDING: "outline",
   FAILED: "destructive",
   REFUNDED: "outline",
@@ -44,6 +47,7 @@ export function GiftCardsTable({ giftCards }: { giftCards: AdminGiftCard[] }) {
           <TableHead>Recipient</TableHead>
           <TableHead>Balance</TableHead>
           <TableHead>Status</TableHead>
+          <TableHead>Redemption</TableHead>
           <TableHead>Created</TableHead>
         </TableRow>
       </TableHeader>
@@ -73,6 +77,18 @@ export function GiftCardsTable({ giftCards }: { giftCards: AdminGiftCard[] }) {
             </TableCell>
             <TableCell>
               <Badge variant={STATUS_VARIANT[card.paymentStatus]}>{card.paymentStatus}</Badge>
+            </TableCell>
+            <TableCell className="text-muted-foreground text-xs">
+              {card.redeemedAt ? (
+                <>
+                  Redeemed by {card.redeemedByName}
+                  <div>{formatDate(card.redeemedAt)}</div>
+                </>
+              ) : card.paymentStatus === "PAID" ? (
+                "Unclaimed"
+              ) : (
+                "—"
+              )}
             </TableCell>
             <TableCell className="text-muted-foreground text-xs">
               {formatDate(card.createdAt)}

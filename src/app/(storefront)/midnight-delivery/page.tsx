@@ -4,6 +4,7 @@ import { Moon, Clock, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
 import { getStoreSettings } from "@/features/settings/queries";
+import { findActiveDeliverySlotByType } from "@/server/repositories/delivery-slot.repository";
 
 export const metadata: Metadata = {
   title: "Midnight Delivery",
@@ -12,7 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default async function MidnightDeliveryPage() {
-  const { midnightCharge, midnightCutoffHour } = await getStoreSettings();
+  const [{ midnightCutoffHour, baseDeliveryCharge, freeDeliveryThreshold }, midnightSlot] =
+    await Promise.all([getStoreSettings(), findActiveDeliverySlotByType("MIDNIGHT")]);
+  const midnightCharge = midnightSlot?.extraCharge ?? 0;
   const cutoff12h =
     midnightCutoffHour > 12 ? `${midnightCutoffHour - 12} PM` : `${midnightCutoffHour} AM`;
 
@@ -41,9 +44,11 @@ export default async function MidnightDeliveryPage() {
         </div>
         <div className="border-border rounded-xs border p-5 text-center">
           <Moon className="text-brand mx-auto size-6" aria-hidden="true" />
-          <p className="mt-3 font-medium">{formatINR(midnightCharge)} Flat Fee</p>
+          <p className="mt-3 font-medium">+{formatINR(midnightCharge)} Midnight Surcharge</p>
           <p className="text-muted-foreground mt-1 text-sm">
-            One flat charge covers the special-hours delivery, whichever date you choose.
+            On top of the standard {formatINR(baseDeliveryCharge)} delivery charge (free above{" "}
+            {formatINR(freeDeliveryThreshold)}) — covers the special-hours delivery, whichever date
+            you choose.
           </p>
         </div>
         <div className="border-border rounded-xs border p-5 text-center">

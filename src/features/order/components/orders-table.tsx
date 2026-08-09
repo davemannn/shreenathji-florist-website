@@ -63,7 +63,12 @@ export function OrdersTable({ orders }: { orders: OrderListItem[] }) {
             <TableCell className="font-medium">{formatINR(order.total)}</TableCell>
             <TableCell>
               <Badge variant={order.paymentStatus === "PAID" ? "secondary" : "outline"}>
-                {order.paymentMethod === "COD" ? "COD" : "Razorpay"} · {order.paymentStatus}
+                {order.paymentMethod === "WALLET"
+                  ? "Wallet"
+                  : order.paymentMethod === "COD"
+                    ? "COD"
+                    : "Razorpay"}{" "}
+                · {order.paymentStatus.replace("_", " ")}
               </Badge>
             </TableCell>
             <TableCell>

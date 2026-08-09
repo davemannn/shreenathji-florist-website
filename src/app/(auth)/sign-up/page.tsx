@@ -6,6 +6,8 @@ export const metadata: Metadata = {
 };
 
 export default function SignUpPage() {
+  const googleEnabled = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
@@ -14,7 +16,7 @@ export default function SignUpPage() {
           Fresh flowers, delivered across Vadodara
         </p>
       </div>
-      <SignUpForm />
+      <SignUpForm googleEnabled={googleEnabled} />
     </div>
   );
 }

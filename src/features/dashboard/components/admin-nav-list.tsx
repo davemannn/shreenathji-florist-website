@@ -2,14 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { adminNav } from "@/config/admin-navigation";
+import { adminNav, sortByPersonalOrder } from "@/config/admin-navigation";
 import { can, type AdminRole } from "@/server/auth/permissions";
 import { cn } from "@/lib/utils";
 
 /** Shared between the desktop sidebar and the mobile sheet — one filtered list, two containers. */
-export function AdminNavList({ role, onNavigate }: { role: AdminRole; onNavigate?: () => void }) {
+export function AdminNavList({
+  role,
+  order,
+  onNavigate,
+}: {
+  role: AdminRole;
+  order?: string[];
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
-  const items = adminNav.filter((item) => !item.capability || can(role, item.capability));
+  const visible = adminNav.filter((item) => !item.capability || can(role, item.capability));
+  const items = sortByPersonalOrder(visible, order);
 
   return (
     <nav className="flex flex-col gap-0.5">

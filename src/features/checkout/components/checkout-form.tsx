@@ -7,14 +7,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useCartStore } from "@/stores/cart-store";
 import { tomorrowIsoIst, type HolidayInfo } from "@/lib/delivery";
+import { haversineDistanceKm } from "@/lib/geo";
 import type { StoreSettings } from "@/features/settings/types";
 import { checkoutSchema, type CheckoutValues } from "../validations";
 import { placeOrderAction, verifyRazorpayPaymentAction } from "../actions";
 import { openRazorpayCheckout } from "@/lib/razorpay-checkout";
+import { useCheckoutTotals } from "../hooks/use-checkout-totals";
 import { AddressSection } from "./address-section";
 import { DeliverySection } from "./delivery-section";
 import { PaymentSection } from "./payment-section";
 import { OrderSummary } from "./order-summary";
+import { DeliveryServiceabilityNotice } from "./delivery-serviceability-notice";
 import type { DeliverySlotOption, SavedAddress } from "../types";
 
 interface CheckoutFormProps {
@@ -22,6 +25,7 @@ interface CheckoutFormProps {
   deliverySlots: DeliverySlotOption[];
   storeSettings: StoreSettings;
   holidays: HolidayInfo[];
+  walletBalance: number;
 }
 
 export function CheckoutForm({
@@ -29,6 +33,7 @@ export function CheckoutForm({
   deliverySlots,
   storeSettings,
   holidays,
+  walletBalance,
 }: CheckoutFormProps) {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
@@ -38,7 +43,6 @@ export function CheckoutForm({
   const [hydrated, setHydrated] = useState(false);
 
   // Same hydration-safety pattern as CartView — cart state is localStorage-backed.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setHydrated(true), []);
 
   useEffect(() => {
@@ -66,10 +70,15 @@ export function CheckoutForm({
       city: defaultAddress?.city ?? "",
       state: defaultAddress?.state ?? "",
       pincode: defaultAddress?.pincode ?? "",
+      latitude: defaultAddress?.latitude,
+      longitude: defaultAddress?.longitude,
       deliveryDate: tomorrowIsoIst(),
       deliverySlotId: defaultSlot?.id,
       messageCard: "",
       giftWrap: false,
+      // Opt-in, not on by default — using wallet balance is a deliberate
+      // choice, not something that should silently apply itself.
+      useWallet: false,
       // Default to whichever method is actually enabled — COD is preferred
       // when both are on, but if it's been disabled Razorpay must be picked
       // instead so the form doesn't start on an unselectable option.
@@ -77,9 +86,36 @@ export function CheckoutForm({
     },
   });
 
+  const totals = useCheckoutTotals(methods.watch, deliverySlots, storeSettings, walletBalance);
+
+  // Only computable when BOTH the address has a geocode (set via the Places
+  // autocomplete — see address-section.tsx) and the admin has configured a
+  // store location; otherwise there's nothing to check and checkout
+  // proceeds normally. Re-checked server-side regardless (order.service.ts)
+  // — this is purely so the customer sees the problem before paying.
+  const addressLatitude = methods.watch("latitude");
+  const addressLongitude = methods.watch("longitude");
+  const distanceKm =
+    addressLatitude != null &&
+    addressLongitude != null &&
+    storeSettings.storeLatitude != null &&
+    storeSettings.storeLongitude != null
+      ? haversineDistanceKm(
+          storeSettings.storeLatitude,
+          storeSettings.storeLongitude,
+          addressLatitude,
+          addressLongitude,
+        )
+      : null;
+  const outsideServiceArea = distanceKm != null && distanceKm > storeSettings.deliveryRadiusKm;
+
   async function onSubmit(values: CheckoutValues) {
     if (items.length === 0) {
       toast.error("Your cart is empty.");
+      return;
+    }
+    if (outsideServiceArea) {
+      toast.error("This address is outside our delivery area.");
       return;
     }
 
@@ -102,11 +138,14 @@ export function CheckoutForm({
         city: values.city,
         state: values.state,
         pincode: values.pincode,
+        latitude: values.latitude,
+        longitude: values.longitude,
         deliveryDate: values.deliveryDate,
         deliverySlotId: values.deliverySlotId,
         messageCard: values.messageCard,
         giftWrap: values.giftWrap,
         couponCode: appliedCoupon?.code,
+        useWallet: values.useWallet,
         paymentMethod: values.paymentMethod,
       });
 
@@ -166,16 +205,26 @@ export function CheckoutForm({
             storeSettings={storeSettings}
             holidays={holidays}
           />
-          <PaymentSection
-            codEnabled={storeSettings.codEnabled}
-            razorpayEnabled={storeSettings.razorpayEnabled}
-          />
+          {outsideServiceArea && distanceKm != null ? (
+            <DeliveryServiceabilityNotice
+              distanceKm={distanceKm}
+              radiusKm={storeSettings.deliveryRadiusKm}
+            />
+          ) : totals.remainingTotal > 0 ? (
+            <PaymentSection
+              codEnabled={storeSettings.codEnabled}
+              razorpayEnabled={storeSettings.razorpayEnabled}
+            />
+          ) : (
+            <section>
+              <h2 className="mb-2 text-lg font-semibold">Payment Method</h2>
+              <p className="border-brand bg-brand/5 text-muted-foreground rounded-xs border px-4 py-3 text-sm">
+                Your wallet balance covers this order in full — no payment needed.
+              </p>
+            </section>
+          )}
         </div>
-        <OrderSummary
-          deliverySlots={deliverySlots}
-          submitting={submitting}
-          storeSettings={storeSettings}
-        />
+        <OrderSummary totals={totals} submitting={submitting} blocked={outsideServiceArea} />
       </form>
     </FormProvider>
   );

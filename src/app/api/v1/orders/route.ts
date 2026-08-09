@@ -61,6 +61,7 @@ const placeOrderBodySchema = z.object({
   messageCard: z.string().optional(),
   giftWrap: z.boolean().default(false),
   couponCode: z.string().optional(),
+  useWallet: z.boolean().optional(),
   paymentMethod: z.enum(["COD", "RAZORPAY"]),
   saveAddress: z.boolean().optional(),
 });

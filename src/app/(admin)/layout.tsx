@@ -1,4 +1,5 @@
 import { requireAdminSession } from "@/server/auth/require-admin";
+import { findUserById } from "@/server/repositories/user.repository";
 import { AdminShell } from "@/features/dashboard/components/admin-shell";
 
 // Real gate: any staff role (super_admin/admin/store_manager/delivery_guy)
@@ -8,9 +9,13 @@ import { AdminShell } from "@/features/dashboard/components/admin-shell";
 // "is a session cookie present" before this ever runs.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdminSession();
+  const user = await findUserById(session.userId);
+  const navOrder = Array.isArray(user?.adminNavOrder)
+    ? user.adminNavOrder.filter((href): href is string => typeof href === "string")
+    : undefined;
 
   return (
-    <AdminShell role={session.role} name={session.name} email={session.email}>
+    <AdminShell role={session.role} name={session.name} email={session.email} navOrder={navOrder}>
       {children}
     </AdminShell>
   );

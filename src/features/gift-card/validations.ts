@@ -30,6 +30,22 @@ export const giftCardSchema = z
 
 export type GiftCardValues = z.infer<typeof giftCardSchema>;
 
+/**
+ * Self-service redemption — a gifted (OTHER-recipient) card's recipient
+ * enters the code themselves to move its value into their own wallet. A
+ * SELF-purchase never needs this (auto-redeemed on payment), but entering
+ * one here is harmless — the server just reports it's already redeemed.
+ */
+export const redeemGiftCardSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1, "Enter a gift card code")
+    .transform((value) => value.toUpperCase()),
+});
+
+export type RedeemGiftCardValues = z.infer<typeof redeemGiftCardSchema>;
+
 // ---------------------------------------------------------------------------
 // Admin panel — marketing/content management (Phase 4). Super Admin only
 // (gift_cards:issue) — issuing a card or crediting/debiting one directly is

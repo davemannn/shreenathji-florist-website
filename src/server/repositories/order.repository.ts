@@ -25,7 +25,9 @@ export interface CreateOrderInput {
   discount: number;
   deliveryCharge: number;
   total: number;
-  paymentMethod: "COD" | "RAZORPAY";
+  /** ₹ of `total` paid from the customer's wallet — debited atomically with order creation below. */
+  walletAmountUsed?: number;
+  paymentMethod: "COD" | "RAZORPAY" | "WALLET";
   recipientName: string;
   recipientPhone: string;
   deliveryLine1: string;
@@ -33,11 +35,15 @@ export interface CreateOrderInput {
   deliveryCity: string;
   deliveryState: string;
   deliveryPincode: string;
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
   deliveryDate: Date;
   deliverySlotId?: string;
   messageCard?: string;
   giftWrap: boolean;
   couponId?: string;
+  /** Set only when this order is an auto-created recurring subscription charge — see subscription.service.ts. */
+  subscriptionId?: string;
   sellerGstin?: string;
   sellerState?: string;
   isInterState: boolean;
@@ -52,19 +58,40 @@ export interface CreateOrderInput {
 /**
  * Nested Prisma writes (`create` with a nested relation `create`) execute as
  * a single atomic operation — the Order and all its OrderItems either all
- * land or none do, no separate `$transaction` wrapper needed.
+ * land or none do, no separate `$transaction` wrapper needed. When wallet
+ * balance is being spent, though, the debit has to land atomically with the
+ * order itself — wrapped in an explicit `$transaction`, and re-checking the
+ * current balance there (never trusting whatever the caller computed
+ * totals against, which could be stale under a concurrent request).
  */
 export async function createOrder(input: CreateOrderInput) {
-  const { items, ...orderData } = input;
+  const { items, walletAmountUsed = 0, userId, ...orderData } = input;
 
-  return prisma.order.create({
-    data: {
-      ...orderData,
-      items: { create: items },
-    },
-    // deliverySlot included so the order-confirmation email (checkout/actions.ts)
-    // can show a friendly slot name, not just the raw ID.
-    include: { items: true, deliverySlot: true },
+  if (walletAmountUsed <= 0) {
+    return prisma.order.create({
+      data: { ...orderData, userId, items: { create: items } },
+      // deliverySlot included so the order-confirmation email
+      // (checkout/actions.ts) can show a friendly slot name, not just the raw ID.
+      include: { items: true, deliverySlot: true },
+    });
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { walletBalance: true },
+    });
+    if (user.walletBalance < walletAmountUsed) {
+      throw new Error("Your wallet balance has changed — please review your order and try again.");
+    }
+    await tx.user.update({
+      where: { id: userId },
+      data: { walletBalance: { decrement: walletAmountUsed } },
+    });
+    return tx.order.create({
+      data: { ...orderData, userId, walletAmountUsed, items: { create: items } },
+      include: { items: true, deliverySlot: true },
+    });
   });
 }
 
@@ -167,11 +194,44 @@ async function assignInvoiceNumberIfNeeded(tx: Prisma.TransactionClient, orderId
   });
 }
 
-export async function markOrderPaid(orderId: string, razorpayPaymentId: string) {
+export interface RazorpayTxnDetailsInput {
+  method?: string | null;
+  contact?: string | null;
+  email?: string | null;
+  vpa?: string | null;
+  bank?: string | null;
+  wallet?: string | null;
+  cardLast4?: string | null;
+  cardNetwork?: string | null;
+}
+
+/**
+ * `txnDetails` is optional and best-effort — the payments.fetch() call that
+ * produces it (checkout/actions.ts) can fail independently of the payment
+ * itself already being legitimately verified/captured, so a missing detail
+ * set here never blocks marking the order paid.
+ */
+export async function markOrderPaid(
+  orderId: string,
+  razorpayPaymentId: string,
+  txnDetails?: RazorpayTxnDetailsInput,
+) {
   return prisma.$transaction(async (tx) => {
     const order = await tx.order.update({
       where: { id: orderId },
-      data: { paymentStatus: "PAID", status: "CONFIRMED", razorpayPaymentId },
+      data: {
+        paymentStatus: "PAID",
+        status: "CONFIRMED",
+        razorpayPaymentId,
+        razorpayMethod: txnDetails?.method,
+        razorpayContact: txnDetails?.contact,
+        razorpayEmail: txnDetails?.email,
+        razorpayVpa: txnDetails?.vpa,
+        razorpayBank: txnDetails?.bank,
+        razorpayWallet: txnDetails?.wallet,
+        razorpayCardLast4: txnDetails?.cardLast4,
+        razorpayCardNetwork: txnDetails?.cardNetwork,
+      },
     });
     await assignInvoiceNumberIfNeeded(tx, orderId);
     return order;
@@ -183,6 +243,23 @@ export async function markOrderConfirmedCod(orderId: string) {
     const order = await tx.order.update({
       where: { id: orderId },
       data: { status: "CONFIRMED" },
+    });
+    await assignInvoiceNumberIfNeeded(tx, orderId);
+    return order;
+  });
+}
+
+/**
+ * For a WALLET-method order (wallet balance covered the full total) — no
+ * gateway payment exists and no cash is ever due, so it's confirmed/paid
+ * immediately at creation rather than waiting on a COD accept or Razorpay
+ * verification that will never come.
+ */
+export async function markOrderPaidByWallet(orderId: string) {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.update({
+      where: { id: orderId },
+      data: { paymentStatus: "PAID", status: "CONFIRMED" },
     });
     await assignInvoiceNumberIfNeeded(tx, orderId);
     return order;
@@ -248,6 +325,10 @@ export async function findOrderByIdAdmin(orderId: string) {
       deliverySlot: true,
       coupon: true,
       statusHistory: { orderBy: { createdAt: "desc" } },
+      refunds: {
+        include: { processedBy: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 }
@@ -285,14 +366,28 @@ export interface UpdateOrderStatusInput {
  * Updates the order's status and logs it to OrderStatusHistory in one
  * transaction. Sets deliveredAt when transitioning to DELIVERED — the only
  * place that timestamp is ever set, so it doubles as "was this ever
- * delivered" without a separate boolean.
+ * delivered" without a separate boolean. Cancelling an order also refunds
+ * any wallet balance it spent back to the customer — real money they're
+ * owed, unlike (deliberately) coupon usage counts, which this does NOT
+ * roll back on cancel.
  */
 export async function updateOrderStatus(input: UpdateOrderStatusInput) {
   return prisma.$transaction(async (tx) => {
     const current = await tx.order.findUniqueOrThrow({
       where: { id: input.orderId },
-      select: { status: true },
+      select: { status: true, userId: true, walletAmountUsed: true },
     });
+
+    if (
+      input.toStatus === "CANCELLED" &&
+      current.status !== "CANCELLED" &&
+      current.walletAmountUsed > 0
+    ) {
+      await tx.user.update({
+        where: { id: current.userId },
+        data: { walletBalance: { increment: current.walletAmountUsed } },
+      });
+    }
 
     const order = await tx.order.update({
       where: { id: input.orderId },
@@ -315,6 +410,49 @@ export async function updateOrderStatus(input: UpdateOrderStatusInput) {
     });
 
     return order;
+  });
+}
+
+export interface RecordOrderRefundInput {
+  orderId: string;
+  amount: number;
+  razorpayRefundId: string;
+  razorpayStatus: string;
+  reason?: string;
+  processedByUserId: string;
+}
+
+/**
+ * Writes the OrderRefund audit row and updates Order.refundedAmount /
+ * paymentStatus atomically — called only AFTER the actual Razorpay refund
+ * API call has already succeeded (see features/order/actions.ts), so this
+ * never fails independently of money having actually moved. paymentStatus
+ * becomes REFUNDED once the cumulative refunded amount reaches the full
+ * charged amount (total - walletAmountUsed), PARTIALLY_REFUNDED otherwise.
+ */
+export async function recordOrderRefund(input: RecordOrderRefundInput) {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.findUniqueOrThrow({ where: { id: input.orderId } });
+
+    await tx.orderRefund.create({
+      data: {
+        orderId: input.orderId,
+        amount: input.amount,
+        razorpayRefundId: input.razorpayRefundId,
+        razorpayStatus: input.razorpayStatus,
+        reason: input.reason,
+        processedByUserId: input.processedByUserId,
+      },
+    });
+
+    const newRefundedAmount = order.refundedAmount + input.amount;
+    const chargedAmount = order.total - order.walletAmountUsed;
+    const paymentStatus = newRefundedAmount >= chargedAmount ? "REFUNDED" : "PARTIALLY_REFUNDED";
+
+    return tx.order.update({
+      where: { id: input.orderId },
+      data: { refundedAmount: newRefundedAmount, paymentStatus },
+    });
   });
 }
 

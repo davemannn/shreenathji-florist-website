@@ -31,6 +31,8 @@ export function buildMainNav({ shop, occasions }: NavCategoryGroups): NavItem[] 
     { label: "Shop", href: "/shop", children: shop.length > 0 ? shop : undefined },
     { label: "Occasions", href: "/shop", children: occasions.length > 0 ? occasions : undefined },
     { label: "Decoration Services", href: "/decoration-services" },
+    { label: "Subscriptions", href: "/subscriptions" },
+    { label: "Gallery", href: "/gallery" },
     { label: "About", href: "/about" },
     { label: "Contact", href: "/contact" },
   ];
@@ -59,6 +61,7 @@ export const footerColumns: FooterColumn[] = [
     links: [
       { label: "Our Story", href: "/about" },
       { label: "Decoration Services", href: "/decoration-services" },
+      { label: "Corporate & Bulk Gifting", href: "/corporate-gifting" },
       { label: "Gallery", href: "/gallery" },
       { label: "Blog", href: "/blog" },
     ],

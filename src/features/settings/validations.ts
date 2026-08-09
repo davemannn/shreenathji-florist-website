@@ -8,8 +8,9 @@ export const storeSettingsFormSchema = z
     baseDeliveryCharge: z.coerce.number().int().min(0),
     freeDeliveryThreshold: z.coerce.number().int().min(0),
     midnightCutoffHour: z.coerce.number().int().min(0).max(23),
-    expressCharge: z.coerce.number().int().min(0),
-    midnightCharge: z.coerce.number().int().min(0),
+    storeLatitude: z.coerce.number().min(-90).max(90).optional(),
+    storeLongitude: z.coerce.number().min(-180).max(180).optional(),
+    deliveryRadiusKm: z.coerce.number().int().min(1).max(200),
     gstin: z
       .string()
       .toUpperCase()

@@ -88,11 +88,24 @@ export function InvoiceView({ invoice }: { invoice: InvoiceData }) {
         <div className="text-right text-xs">
           <p>
             <span className="text-muted-foreground">Payment: </span>
-            {invoice.paymentMethod === "COD" ? "Cash on Delivery" : "Prepaid (Razorpay)"}
+            {invoice.paymentMethod === "WALLET"
+              ? "Wallet"
+              : invoice.paymentMethod === "COD"
+                ? "Cash on Delivery"
+                : "Prepaid (Razorpay)"}
+            {invoice.walletAmountUsed > 0 && invoice.paymentMethod !== "WALLET"
+              ? ` (${formatINR(invoice.walletAmountUsed)} from wallet)`
+              : null}
           </p>
           <p>
             <span className="text-muted-foreground">Status: </span>
-            {invoice.paymentStatus === "PAID" ? "Paid" : invoice.paymentStatus}
+            {invoice.paymentStatus === "PAID"
+              ? "Paid"
+              : invoice.paymentStatus === "PARTIALLY_REFUNDED"
+                ? "Partially Refunded"
+                : invoice.paymentStatus === "REFUNDED"
+                  ? "Refunded"
+                  : invoice.paymentStatus}
           </p>
           {invoice.isInterState ? (
             <p className="mt-1">Place of Supply: {invoice.buyerState} (Inter-state)</p>
@@ -175,6 +188,26 @@ export function InvoiceView({ invoice }: { invoice: InvoiceData }) {
             <span>Grand Total</span>
             <span>{formatINR(invoice.total)}</span>
           </div>
+          {invoice.walletAmountUsed > 0 ? (
+            <div className="flex justify-between py-1">
+              <span className="text-muted-foreground">Paid from Wallet</span>
+              <span>-{formatINR(invoice.walletAmountUsed)}</span>
+            </div>
+          ) : null}
+          {invoice.refundedAmount > 0 ? (
+            <div className="flex justify-between py-1">
+              <span className="text-muted-foreground">Refunded</span>
+              <span>-{formatINR(invoice.refundedAmount)}</span>
+            </div>
+          ) : null}
+          {invoice.walletAmountUsed > 0 || invoice.refundedAmount > 0 ? (
+            <div className="flex justify-between border-t py-1.5 font-semibold">
+              <span>{invoice.paymentMethod === "WALLET" ? "Amount Paid" : "Net Amount"}</span>
+              <span>
+                {formatINR(invoice.total - invoice.walletAmountUsed - invoice.refundedAmount)}
+              </span>
+            </div>
+          ) : null}
         </div>
       </div>
 

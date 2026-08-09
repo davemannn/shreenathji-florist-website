@@ -14,10 +14,35 @@ import type {
   InvoiceData,
   OrderDetail,
   OrderListItem,
+  RazorpayTxnDetails,
 } from "./types";
 
 type OrderRow = Awaited<ReturnType<typeof listOrdersAdminRepo>>["orders"][number];
 type OrderDetailRow = NonNullable<Awaited<ReturnType<typeof findOrderByIdAdmin>>>;
+
+/** undefined (not an all-null object) when no method was ever captured — COD/WALLET orders, or a failed payments.fetch(). */
+function toRazorpayTxnDetails(order: {
+  razorpayMethod: string | null;
+  razorpayContact: string | null;
+  razorpayEmail: string | null;
+  razorpayVpa: string | null;
+  razorpayBank: string | null;
+  razorpayWallet: string | null;
+  razorpayCardLast4: string | null;
+  razorpayCardNetwork: string | null;
+}): RazorpayTxnDetails | undefined {
+  if (!order.razorpayMethod) return undefined;
+  return {
+    method: order.razorpayMethod,
+    contact: order.razorpayContact ?? undefined,
+    email: order.razorpayEmail ?? undefined,
+    vpa: order.razorpayVpa ?? undefined,
+    bank: order.razorpayBank ?? undefined,
+    wallet: order.razorpayWallet ?? undefined,
+    cardLast4: order.razorpayCardLast4 ?? undefined,
+    cardNetwork: order.razorpayCardNetwork ?? undefined,
+  };
+}
 
 function toListItem(order: OrderRow): OrderListItem {
   return {
@@ -27,6 +52,8 @@ function toListItem(order: OrderRow): OrderListItem {
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,
     total: order.total,
+    walletAmountUsed: order.walletAmountUsed,
+    refundedAmount: order.refundedAmount,
     itemCount: order.items.reduce((sum, item) => sum + item.quantity, 0),
     recipientName: order.recipientName,
     recipientPhone: order.recipientPhone,
@@ -57,6 +84,17 @@ function toDetail(order: OrderDetailRow): OrderDetail {
     assignedDeliveryPersonId: order.assignedDeliveryPersonId ?? undefined,
     assignedDeliveryPersonPhone: order.assignedDeliveryPerson?.phone ?? undefined,
     deliveredAt: order.deliveredAt?.toISOString(),
+    razorpayPaymentId: order.razorpayPaymentId ?? undefined,
+    razorpayTxn: toRazorpayTxnDetails(order),
+    refunds: order.refunds.map((refund) => ({
+      id: refund.id,
+      amount: refund.amount,
+      razorpayRefundId: refund.razorpayRefundId,
+      razorpayStatus: refund.razorpayStatus,
+      reason: refund.reason ?? undefined,
+      processedByName: refund.processedBy.name,
+      createdAt: refund.createdAt.toISOString(),
+    })),
     items: order.items.map((item) => ({
       id: item.id,
       productTitle: item.productTitle,
@@ -140,6 +178,9 @@ export async function getInvoiceData(orderNumber: string): Promise<InvoiceData |
     createdAt: order.createdAt.toISOString(),
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,
+    walletAmountUsed: order.walletAmountUsed,
+    refundedAmount: order.refundedAmount,
+    razorpayTxn: toRazorpayTxnDetails(order),
 
     // Business name/address are display-only — safe to show current
     // Settings even for an old order. GSTIN/state are the actual

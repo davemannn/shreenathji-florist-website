@@ -16,6 +16,7 @@ import {
   type HolidayInfo,
 } from "@/lib/delivery";
 import type { StoreSettings } from "@/features/settings/types";
+import { useCartStore } from "@/stores/cart-store";
 import { DeliveryDatePicker } from "./delivery-date-picker";
 import type { CheckoutValues } from "../validations";
 import type { DeliverySlotOption } from "../types";
@@ -45,13 +46,28 @@ interface DeliverySectionProps {
 
 export function DeliverySection({ deliverySlots, storeSettings, holidays }: DeliverySectionProps) {
   const { control, register, watch, setValue } = useFormContext<CheckoutValues>();
-  const { midnightCutoffHour, midnightCharge } = storeSettings;
+  const { midnightCutoffHour, baseDeliveryCharge, freeDeliveryThreshold } = storeSettings;
+  // The real Midnight surcharge now lives on the Midnight DeliverySlot
+  // itself (see lib/delivery.ts / order.service.ts) — not a separate
+  // StoreSettings field that could drift out of sync with it.
+  const midnightCharge = deliverySlots.find((slot) => slot.type === "MIDNIGHT")?.extraCharge ?? 0;
   const now = nowInIst();
   const selectedDate = watch("deliveryDate");
   const selectedSlotId = watch("deliverySlotId");
   const selectedSlot = deliverySlots.find((slot) => slot.id === selectedSlotId);
   const expressSlot = deliverySlots.find((slot) => slot.type === "FIXED");
   const isExpressSelected = selectedSlot?.type === "FIXED";
+
+  // Every slot's displayed price below is the FULL delivery cost (base
+  // charge + slot surcharge), matching what actually lands in the order
+  // summary's single "Delivery" line — showing only the slot's marginal
+  // surcharge let a slot read "Free" while the total below it wasn't,
+  // which looked like a bug.
+  const items = useCartStore((state) => state.items);
+  const appliedCoupon = useCartStore((state) => state.appliedCoupon);
+  const cartSubtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const afterDiscount = cartSubtotal - (appliedCoupon?.discount ?? 0);
+  const baseCharge = afterDiscount >= freeDeliveryThreshold ? 0 : baseDeliveryCharge;
 
   // If the date changes out from under a Standard/Midnight selection and
   // makes it invalid (e.g. switching to "Today" while Standard was picked,
@@ -83,14 +99,15 @@ export function DeliverySection({ deliverySlots, storeSettings, holidays }: Deli
                 </p>
                 <p className="text-muted-foreground text-xs">
                   {formatINR(
-                    effectiveSlotCharge(
-                      "FIXED",
-                      todayIsoIst(),
-                      expressSlot.extraCharge,
-                      now,
-                      midnightCutoffHour,
-                      midnightCharge,
-                    ),
+                    baseCharge +
+                      effectiveSlotCharge(
+                        "FIXED",
+                        todayIsoIst(),
+                        expressSlot.extraCharge,
+                        now,
+                        midnightCutoffHour,
+                        midnightCharge,
+                      ),
                   )}{" "}
                   · delivering today
                 </p>
@@ -120,6 +137,11 @@ export function DeliverySection({ deliverySlots, storeSettings, holidays }: Deli
             {deliverySlots.length > 0 ? (
               <div>
                 <Label className="mb-2 block">Delivery Slot</Label>
+                <p className="text-muted-foreground mb-2 text-xs">
+                  {baseCharge === 0
+                    ? "Free delivery unlocked — prices below are the full amount you'll pay for each option."
+                    : `Prices below are the full delivery charge for each option (includes the ${formatINR(baseCharge)} base charge, free above ${formatINR(freeDeliveryThreshold)}).`}
+                </p>
                 <div className="flex flex-col gap-2">
                   {deliverySlots.map((slot) => {
                     const available = isSlotAvailable(
@@ -130,7 +152,7 @@ export function DeliverySection({ deliverySlots, storeSettings, holidays }: Deli
                       holidays,
                     );
                     const isExpress = slot.type === "FIXED";
-                    const charge = isExpress
+                    const slotCharge = isExpress
                       ? effectiveSlotCharge(
                           "FIXED",
                           todayIsoIst(),
@@ -140,6 +162,9 @@ export function DeliverySection({ deliverySlots, storeSettings, holidays }: Deli
                           midnightCharge,
                         )
                       : slot.extraCharge;
+                    // Full delivery total for this option, not just its own
+                    // marginal surcharge — matches the order summary below.
+                    const charge = baseCharge + slotCharge;
                     const label = isExpress
                       ? expressDisplayLabel(now, midnightCutoffHour)
                       : slot.label;

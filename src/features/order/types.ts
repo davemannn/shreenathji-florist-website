@@ -1,13 +1,20 @@
 export type OrderStatus =
   "PENDING" | "CONFIRMED" | "PROCESSING" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED";
 
+/** WALLET = the order's full total was covered by wallet balance — no cash due, no gateway payment. */
+export type OrderPaymentMethod = "COD" | "RAZORPAY" | "WALLET";
+
 export interface OrderListItem {
   id: string;
   orderNumber: string;
   status: OrderStatus;
-  paymentMethod: "COD" | "RAZORPAY";
-  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  paymentMethod: OrderPaymentMethod;
+  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
   total: number;
+  /** ₹ of `total` paid from wallet balance — 0 if none used. */
+  walletAmountUsed: number;
+  /** ₹ refunded via Razorpay so far — 0 if none. Caps at `total - walletAmountUsed`. */
+  refundedAmount: number;
   itemCount: number;
   recipientName: string;
   recipientPhone: string;
@@ -38,6 +45,28 @@ export interface OrderStatusHistoryEntry {
   createdAt: string;
 }
 
+/** Captured once via Razorpay's payments.fetch() right after payment verification — null/undefined fields for COD/WALLET orders or if the fetch itself failed. */
+export interface RazorpayTxnDetails {
+  method?: string;
+  contact?: string;
+  email?: string;
+  vpa?: string;
+  bank?: string;
+  wallet?: string;
+  cardLast4?: string;
+  cardNetwork?: string;
+}
+
+export interface OrderRefundEntry {
+  id: string;
+  amount: number;
+  razorpayRefundId: string;
+  razorpayStatus: string;
+  reason?: string;
+  processedByName: string;
+  createdAt: string;
+}
+
 export interface OrderDetail extends OrderListItem {
   subtotal: number;
   discount: number;
@@ -55,6 +84,9 @@ export interface OrderDetail extends OrderListItem {
   assignedDeliveryPersonId?: string;
   assignedDeliveryPersonPhone?: string;
   deliveredAt?: string;
+  razorpayPaymentId?: string;
+  razorpayTxn?: RazorpayTxnDetails;
+  refunds: OrderRefundEntry[];
   items: OrderLineItem[];
   statusHistory: OrderStatusHistoryEntry[];
 }
@@ -105,8 +137,13 @@ export interface InvoiceData {
   invoiceNumber?: string;
   invoicedAt?: string;
   createdAt: string;
-  paymentMethod: "COD" | "RAZORPAY";
-  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  paymentMethod: OrderPaymentMethod;
+  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
+  /** ₹ of `total` paid from wallet balance — 0 if none used. */
+  walletAmountUsed: number;
+  /** ₹ refunded via Razorpay so far — 0 if none. */
+  refundedAmount: number;
+  razorpayTxn?: RazorpayTxnDetails;
 
   sellerName: string;
   sellerGstin?: string;

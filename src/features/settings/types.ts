@@ -9,8 +9,11 @@ export interface StoreSettings {
   baseDeliveryCharge: number;
   freeDeliveryThreshold: number;
   midnightCutoffHour: number;
-  expressCharge: number;
-  midnightCharge: number;
+  /** Null until an admin sets the store's location (via the Google Places picker in /admin/settings) — the delivery-radius check is skipped entirely until both are set. */
+  storeLatitude?: number;
+  storeLongitude?: number;
+  /** km, straight-line — see lib/geo.ts. */
+  deliveryRadiusKm: number;
   /** Null until the business is GST-registered and this is set — see order.service.ts. */
   gstin?: string;
   legalBusinessName?: string;

@@ -10,6 +10,10 @@ export const addressSchema = z.object({
   city: z.string().min(2, "Enter a city"),
   state: z.string().min(2, "Enter a state"),
   pincode: indianPinCodeSchema,
+  // Set via the Places autocomplete (see place-autocomplete-input.tsx),
+  // never a user-typed field — plain z.number(), not .coerce.
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
 });
 
 export type AddressValues = z.infer<typeof addressSchema>;

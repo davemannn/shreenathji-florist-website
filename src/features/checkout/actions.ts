@@ -5,6 +5,7 @@ import { auth } from "@/server/auth/config";
 import { placeOrder, type CartLineItemInput } from "@/server/services/order.service";
 import {
   createRazorpayOrder,
+  fetchRazorpayPaymentDetails,
   getRazorpayPublicKeyId,
   verifyRazorpaySignature,
 } from "@/server/payments/razorpay";
@@ -13,6 +14,7 @@ import {
   findOrderById,
   markOrderConfirmedCod,
   markOrderPaid,
+  markOrderPaidByWallet,
 } from "@/server/repositories/order.repository";
 import { createAddress } from "@/server/repositories/address.repository";
 import { sendEmail, STORE_INBOX } from "@/server/email/mailer";
@@ -30,11 +32,14 @@ interface PlaceOrderActionInput {
   city: string;
   state: string;
   pincode: string;
+  latitude?: number;
+  longitude?: number;
   deliveryDate: string;
   deliverySlotId?: string;
   messageCard?: string;
   giftWrap: boolean;
   couponCode?: string;
+  useWallet?: boolean;
   paymentMethod: "COD" | "RAZORPAY";
   saveAddress?: boolean;
 }
@@ -59,7 +64,8 @@ interface OrderConfirmationEmailOrder {
   id: string;
   orderNumber: string;
   total: number;
-  paymentMethod: "COD" | "RAZORPAY";
+  walletAmountUsed: number;
+  paymentMethod: "COD" | "RAZORPAY" | "WALLET";
   deliveryDate: Date;
   deliveryLine1: string;
   deliveryLine2: string | null;
@@ -112,6 +118,7 @@ async function sendOrderConfirmationEmail(
           .join(", "),
         total: order.total,
         paymentMethod: order.paymentMethod,
+        walletAmountUsed: order.walletAmountUsed,
         invoiceUrl: `${siteConfig.url}/invoice/${order.orderNumber}`,
         storeAddressLine: settings.registeredAddressLine,
         storeCity: settings.registeredCity,
@@ -135,6 +142,7 @@ async function sendOrderConfirmationEmail(
         customerName: customer.name,
         total: order.total,
         paymentMethod: order.paymentMethod,
+        walletAmountUsed: order.walletAmountUsed,
         orderUrl: `${siteConfig.url}/admin/orders/${order.id}`,
       }),
     });
@@ -161,11 +169,14 @@ export async function placeOrderAction(input: PlaceOrderActionInput) {
     deliveryCity: input.city,
     deliveryState: input.state,
     deliveryPincode: input.pincode,
+    deliveryLatitude: input.latitude,
+    deliveryLongitude: input.longitude,
     deliveryDate: new Date(input.deliveryDate),
     deliverySlotId: input.deliverySlotId,
     messageCard: input.messageCard,
     giftWrap: input.giftWrap,
     couponCode: input.couponCode,
+    useWallet: input.useWallet,
     paymentMethod: input.paymentMethod,
   });
 
@@ -179,11 +190,27 @@ export async function placeOrderAction(input: PlaceOrderActionInput) {
       city: input.city,
       state: input.state,
       pincode: input.pincode,
+      latitude: input.latitude,
+      longitude: input.longitude,
     });
   }
 
-  if (input.paymentMethod === "RAZORPAY") {
-    const razorpayOrder = await createRazorpayOrder(order.total, order.orderNumber);
+  // Wallet balance covered the full total (order.service.ts resolves this,
+  // never the client's requested method) — no gateway step and no cash due,
+  // so it's confirmed/paid immediately, same as COD's "no step to wait on"
+  // below but also marking paymentStatus PAID since the wallet debit
+  // already settled it.
+  if (order.paymentMethod === "WALLET") {
+    await markOrderPaidByWallet(order.id);
+    await sendOrderConfirmationEmail(order, user);
+    return { orderId: order.id, orderNumber: order.orderNumber, razorpay: null };
+  }
+
+  if (order.paymentMethod === "RAZORPAY") {
+    // Only what's still owed after any wallet amount already deducted —
+    // order.total itself is unchanged (same pattern as discount).
+    const amountDue = order.total - order.walletAmountUsed;
+    const razorpayOrder = await createRazorpayOrder(amountDue, order.orderNumber);
     await attachRazorpayOrderId(order.id, razorpayOrder.id);
 
     return {
@@ -233,7 +260,17 @@ export async function verifyRazorpayPaymentAction(input: VerifyPaymentActionInpu
     throw new Error("Payment verification failed. Please contact support if you were charged.");
   }
 
-  await markOrderPaid(order.id, input.razorpayPaymentId);
+  // Best-effort — the payment is already legitimately verified/captured by
+  // the signature check above regardless of whether this extra lookup
+  // succeeds, so a failure here shouldn't block marking the order paid.
+  let txnDetails: Awaited<ReturnType<typeof fetchRazorpayPaymentDetails>> | undefined;
+  try {
+    txnDetails = await fetchRazorpayPaymentDetails(input.razorpayPaymentId);
+  } catch {
+    // Razorpay API hiccup, or details not available yet — order still gets marked paid.
+  }
+
+  await markOrderPaid(order.id, input.razorpayPaymentId, txnDetails);
   await sendOrderConfirmationEmail(order, order.user);
 
   return { orderNumber: order.orderNumber };

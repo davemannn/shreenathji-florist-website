@@ -25,6 +25,9 @@ function toAdminGiftCard(card: GiftCardRow): AdminGiftCard {
     deliveryDate: card.deliveryDate?.toISOString(),
     paymentStatus: card.paymentStatus,
     createdAt: card.createdAt.toISOString(),
+    redeemedAt: card.redeemedAt?.toISOString(),
+    redeemedByName: card.redeemedBy?.name,
+    redeemedByEmail: card.redeemedBy?.email,
   };
 }
 

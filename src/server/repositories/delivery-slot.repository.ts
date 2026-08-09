@@ -11,6 +11,20 @@ export async function findDeliverySlotById(id: string) {
   return prisma.deliverySlot.findUnique({ where: { id } });
 }
 
+/**
+ * The real, currently-charged surcharge for a slot type — single source of
+ * truth for both what checkout actually charges and what the marketing
+ * pages advertise (replaces the old, separately-editable
+ * StoreSettings.expressCharge/midnightCharge that could silently drift out
+ * of sync with this). Null if no active slot of that type exists.
+ */
+export async function findActiveDeliverySlotByType(type: "NORMAL" | "FIXED" | "MIDNIGHT") {
+  return prisma.deliverySlot.findFirst({
+    where: { type, isActive: true },
+    orderBy: { sortOrder: "asc" },
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Admin panel — marketing/content management (Phase 4).
 // ---------------------------------------------------------------------------

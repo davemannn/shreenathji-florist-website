@@ -7,6 +7,9 @@ export interface ListProductsParams {
   sort?: ProductSort;
   page?: number;
   pageSize?: number;
+  /** ₹ — matches if the product has ANY variant priced in this range (not just its cheapest), so a product with a wide price spread across variants still shows up under a bucket that fits one of its options. */
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 const PRODUCT_INCLUDE = {
@@ -31,11 +34,23 @@ function orderByFor(sort: ProductSort | undefined) {
 }
 
 export async function listProducts(params: ListProductsParams = {}) {
-  const { categorySlug, sort, page = 1, pageSize = 12 } = params;
+  const { categorySlug, sort, page = 1, pageSize = 12, minPrice, maxPrice } = params;
 
   const where = {
     isActive: true,
     ...(categorySlug ? { categories: { some: { category: { slug: categorySlug } } } } : {}),
+    ...(minPrice !== undefined || maxPrice !== undefined
+      ? {
+          variants: {
+            some: {
+              price: {
+                ...(minPrice !== undefined ? { gte: minPrice } : {}),
+                ...(maxPrice !== undefined ? { lte: maxPrice } : {}),
+              },
+            },
+          },
+        }
+      : {}),
   };
 
   const [products, total] = await Promise.all([

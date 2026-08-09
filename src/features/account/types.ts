@@ -11,9 +11,10 @@ export interface AccountOrder {
   id: string;
   orderNumber: string;
   status: "PENDING" | "CONFIRMED" | "PROCESSING" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED";
-  paymentMethod: "COD" | "RAZORPAY";
-  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  paymentMethod: "COD" | "RAZORPAY" | "WALLET";
+  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
   total: number;
+  walletAmountUsed: number;
   createdAt: string;
   deliveryDate: string;
   items: AccountOrderItem[];
@@ -29,6 +30,8 @@ export interface AccountAddress {
   city: string;
   state: string;
   pincode: string;
+  latitude?: number;
+  longitude?: number;
   isDefault: boolean;
 }
 

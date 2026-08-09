@@ -3,11 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FileText } from "lucide-react";
 import { requireAdminSession } from "@/server/auth/require-admin";
+import { can } from "@/server/auth/permissions";
 import { getOrderDetail, getActiveDeliveryPersons } from "@/features/order/queries";
+import type { OrderDetail, RazorpayTxnDetails } from "@/features/order/types";
 import { OrderStatusBadge } from "@/features/order/components/order-status-badge";
 import { OrderStatusActions } from "@/features/order/components/order-status-actions";
 import { DeliveryAssignmentSelect } from "@/features/order/components/delivery-assignment-select";
 import { OrderStatusHistoryList } from "@/features/order/components/order-status-history";
+import { ProcessRefundDialog } from "@/features/order/components/process-refund-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
@@ -24,6 +27,36 @@ function formatDate(iso: string): string {
   });
 }
 
+const PAYMENT_STATUS_VARIANT: Record<
+  OrderDetail["paymentStatus"],
+  "secondary" | "outline" | "destructive"
+> = {
+  PAID: "secondary",
+  PENDING: "outline",
+  FAILED: "destructive",
+  REFUNDED: "outline",
+  PARTIALLY_REFUNDED: "outline",
+};
+
+/** Human-readable summary of however the customer actually paid — method-specific, not just "Razorpay". */
+function describeRazorpayTxn(txn: RazorpayTxnDetails): string {
+  const parts: string[] = [];
+  if (txn.method === "card" && txn.cardLast4) {
+    parts.push(`Card ending ${txn.cardLast4}${txn.cardNetwork ? ` (${txn.cardNetwork})` : ""}`);
+  } else if (txn.method === "upi" && txn.vpa) {
+    parts.push(`UPI (${txn.vpa})`);
+  } else if (txn.method === "netbanking" && txn.bank) {
+    parts.push(`Netbanking (${txn.bank})`);
+  } else if (txn.method === "wallet" && txn.wallet) {
+    parts.push(`Wallet (${txn.wallet})`);
+  } else if (txn.method) {
+    parts.push(txn.method);
+  }
+  if (txn.contact) parts.push(txn.contact);
+  if (txn.email) parts.push(txn.email);
+  return parts.join(" · ");
+}
+
 export default async function AdminOrderDetailPage({ params }: PageProps<"/admin/orders/[id]">) {
   const { id } = await params;
   const session = await requireAdminSession("orders:view:all");
@@ -33,6 +66,17 @@ export default async function AdminOrderDetailPage({ params }: PageProps<"/admin
     getActiveDeliveryPersons(),
   ]);
   if (!order) notFound();
+
+  // What's actually left to refund via Razorpay — excludes any wallet
+  // portion (already restored automatically on cancel) and anything
+  // already refunded. Only ever shown once the order is CANCELLED —
+  // refunding is a deliberate step after cancellation, not automatic.
+  const maxRefundable = order.total - order.walletAmountUsed - order.refundedAmount;
+  const canRefund =
+    can(session.role, "orders:refund") &&
+    order.status === "CANCELLED" &&
+    order.paymentMethod === "RAZORPAY" &&
+    maxRefundable > 0;
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
@@ -102,19 +146,60 @@ export default async function AdminOrderDetailPage({ params }: PageProps<"/admin
         <div className="flex flex-col gap-1">
           <h2 className="mb-1 font-semibold">Payment</h2>
           <p className="text-sm">
-            {order.paymentMethod === "COD" ? "Cash on Delivery" : "Razorpay"}
+            {order.paymentMethod === "WALLET"
+              ? "Wallet"
+              : order.paymentMethod === "COD"
+                ? "Cash on Delivery"
+                : "Razorpay"}
+            {order.walletAmountUsed > 0 && order.paymentMethod !== "WALLET"
+              ? ` (${formatINR(order.walletAmountUsed)} from wallet)`
+              : null}
           </p>
-          <Badge
-            variant={order.paymentStatus === "PAID" ? "secondary" : "outline"}
-            className="w-fit"
-          >
-            {order.paymentStatus}
+          {order.razorpayTxn ? (
+            <p className="text-muted-foreground text-xs">
+              {describeRazorpayTxn(order.razorpayTxn)}
+            </p>
+          ) : null}
+          <Badge variant={PAYMENT_STATUS_VARIANT[order.paymentStatus]} className="w-fit">
+            {order.paymentStatus.replace("_", " ")}
           </Badge>
+          {order.refundedAmount > 0 ? (
+            <p className="text-muted-foreground text-xs">
+              {formatINR(order.refundedAmount)} refunded so far
+            </p>
+          ) : null}
           {order.couponCode ? (
             <p className="text-muted-foreground mt-2 text-sm">Coupon: {order.couponCode}</p>
           ) : null}
+          {canRefund ? (
+            <div className="mt-2">
+              <ProcessRefundDialog orderId={order.id} maxRefundable={maxRefundable} />
+            </div>
+          ) : null}
         </div>
       </section>
+
+      {order.refunds.length > 0 ? (
+        <section className="border-border flex flex-col gap-3 rounded-xs border p-5">
+          <h2 className="font-semibold">Refunds</h2>
+          <ul className="flex flex-col gap-2">
+            {order.refunds.map((refund) => (
+              <li key={refund.id} className="border-border rounded-md border p-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{formatINR(refund.amount)}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {formatDate(refund.createdAt)}
+                  </span>
+                </div>
+                {refund.reason ? <p className="mt-1">{refund.reason}</p> : null}
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {refund.razorpayStatus} · by {refund.processedByName} · {refund.razorpayRefundId}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="border-border flex flex-col gap-3 rounded-xs border p-5">
         <h2 className="font-semibold">Items</h2>

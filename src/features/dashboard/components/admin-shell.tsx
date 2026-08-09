@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Menu, LogOut, User as UserIcon, Bell } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { Menu, LogOut, User as UserIcon, Bell, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
@@ -16,10 +16,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth-client";
 import { Logo } from "@/components/shared/logo";
+import { adminNav } from "@/config/admin-navigation";
 import type { AdminRole } from "@/server/auth/permissions";
 import { playOrderChime, unlockChimeAudio } from "@/lib/chime";
 import { useOrderNotifications } from "../hooks/use-order-notifications";
+import { useAdminTheme } from "../hooks/use-admin-theme";
 import { AdminNavList } from "./admin-nav-list";
+import { CustomizeNavOrderDialog } from "./customize-nav-order-dialog";
 import { GlobalSearch } from "./global-search";
 
 const ROLE_LABELS: Record<AdminRole, string> = {
@@ -33,11 +36,14 @@ interface AdminShellProps {
   role: AdminRole;
   name: string;
   email: string;
+  /** This admin's saved sidebar-order preference, if any — see config/admin-navigation.ts's sortByPersonalOrder. */
+  navOrder?: string[];
   children: React.ReactNode;
 }
 
-export function AdminShell({ role, name, email, children }: AdminShellProps) {
+export function AdminShell({ role, name, email, navOrder, children }: AdminShellProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   // Mounted once for the whole admin shell (unlike the orders page's own
   // NewActivityBanner, which polls independently just for its banner) —
@@ -45,6 +51,14 @@ export function AdminShell({ role, name, email, children }: AdminShellProps) {
   // order never gets announced twice.
   const { count } = useOrderNotifications(() => playOrderChime());
   const notificationsHref = role === "delivery_guy" ? "/admin/my-deliveries" : "/admin/orders";
+  const { theme, toggleTheme } = useAdminTheme();
+
+  // Same active-match rule as AdminNavList — whichever nav item matches
+  // the current route names this page in the topbar, so the (previously
+  // empty) left side actually says something.
+  const currentPage = adminNav.find((item) =>
+    item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href),
+  );
 
   // Browsers suspend a freshly-created AudioContext until a user gesture
   // resumes it — the chime itself fires later from a background poll, not
@@ -74,43 +88,65 @@ export function AdminShell({ role, name, email, children }: AdminShellProps) {
     <div className="bg-muted/30 min-h-screen">
       {/* Desktop sidebar */}
       <aside className="bg-background fixed inset-y-0 left-0 hidden w-60 flex-col border-r lg:flex">
-        <div className="flex h-16 items-center border-b px-4">
-          <Logo dark href="/admin" className="h-11 w-11" />
+        <div className="flex h-20 shrink-0 items-center justify-center border-b px-4">
+          <Logo dark href="/admin" className="h-16 w-16" />
         </div>
-        <div className="flex-1 overflow-y-auto p-3">
-          <AdminNavList role={role} />
+        <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-3">
+          <AdminNavList role={role} order={navOrder} />
+        </div>
+        <div className="border-t p-3">
+          <CustomizeNavOrderDialog role={role} order={navOrder} />
         </div>
       </aside>
 
       {/* Mobile sheet nav */}
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-        <SheetContent side="left" className="w-64 p-0">
-          <SheetHeader className="border-b">
+        <SheetContent side="left" className="flex w-64 flex-col p-0">
+          <SheetHeader className="h-20 shrink-0 items-center justify-center border-b">
             <SheetTitle>
-              <Logo dark href="/admin" className="h-11 w-11" />
+              <Logo dark href="/admin" className="h-16 w-16" />
             </SheetTitle>
           </SheetHeader>
-          <div className="p-3">
-            <AdminNavList role={role} onNavigate={() => setMobileNavOpen(false)} />
+          <div className="flex-1 overflow-y-auto p-3">
+            <AdminNavList role={role} order={navOrder} onNavigate={() => setMobileNavOpen(false)} />
+          </div>
+          <div className="shrink-0 border-t p-3">
+            <CustomizeNavOrderDialog role={role} order={navOrder} />
           </div>
         </SheetContent>
       </Sheet>
 
       <div className="lg:pl-60">
         {/* Topbar */}
-        <header className="bg-background sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b px-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            aria-label="Open menu"
-            onClick={() => setMobileNavOpen(true)}
-          >
-            <Menu aria-hidden="true" />
-          </Button>
+        <header className="bg-background sticky top-0 z-30 flex h-20 items-center justify-between gap-4 border-b px-4">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden"
+              aria-label="Open menu"
+              onClick={() => setMobileNavOpen(true)}
+            >
+              <Menu aria-hidden="true" />
+            </Button>
+            <div className="hidden lg:block">
+              <h1 className="text-lg font-semibold">{currentPage?.label ?? "Admin"}</h1>
+              <p className="text-muted-foreground text-xs">
+                {ROLE_LABELS[role]} · {name}
+              </p>
+            </div>
+          </div>
 
           <div className="ml-auto flex items-center gap-2">
             <GlobalSearch />
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              onClick={toggleTheme}
+            >
+              {theme === "dark" ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
+            </Button>
             <Button
               variant="ghost"
               size="icon"

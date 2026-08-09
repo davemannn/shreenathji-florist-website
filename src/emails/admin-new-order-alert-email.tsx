@@ -15,7 +15,9 @@ interface AdminNewOrderAlertEmailProps {
   orderNumber: string;
   customerName: string;
   total: number;
-  paymentMethod: "COD" | "RAZORPAY";
+  paymentMethod: "COD" | "RAZORPAY" | "WALLET";
+  /** ₹ of `total` paid from wallet balance — 0 if none used. Matters most for COD: cash due on delivery is `total - walletAmountUsed`, not the full total. */
+  walletAmountUsed?: number;
   orderUrl: string;
 }
 
@@ -31,8 +33,16 @@ export function AdminNewOrderAlertEmail({
   customerName,
   total,
   paymentMethod,
+  walletAmountUsed = 0,
   orderUrl,
 }: AdminNewOrderAlertEmailProps) {
+  const paymentLabel =
+    paymentMethod === "WALLET"
+      ? "Paid from wallet"
+      : paymentMethod === "COD"
+        ? `Cash on Delivery${walletAmountUsed > 0 ? ` — collect ${formatINR(total - walletAmountUsed)} (${formatINR(walletAmountUsed)} already paid from wallet)` : ""}`
+        : `Paid online${walletAmountUsed > 0 ? ` · ${formatINR(walletAmountUsed)} from wallet` : ""}`;
+
   return (
     <Html>
       <Head />
@@ -52,8 +62,7 @@ export function AdminNewOrderAlertEmail({
               <strong>Customer:</strong> {customerName}
             </Text>
             <Text style={{ margin: "4px 0" }}>
-              <strong>Payment:</strong>{" "}
-              {paymentMethod === "COD" ? "Cash on Delivery" : "Paid online"}
+              <strong>Payment:</strong> {paymentLabel}
             </Text>
           </Section>
           <Text style={{ margin: "16px 0 4px", fontSize: "13px" }}>

@@ -12,6 +12,7 @@ import {
   findGiftCardById,
   issueGiftCard as issueGiftCardRepo,
   markGiftCardPaid,
+  redeemGiftCardByCode,
 } from "@/server/repositories/gift-card.repository";
 import { findUserByEmail } from "@/server/repositories/user.repository";
 import {
@@ -21,13 +22,16 @@ import {
 } from "@/server/payments/razorpay";
 import { sendEmail } from "@/server/email/mailer";
 import { GiftCardEmail } from "@/emails/gift-card-email";
+import { siteConfig } from "@/config/site";
 import {
   adjustGiftCardBalanceFormSchema,
   giftCardSchema,
   issueGiftCardFormSchema,
+  redeemGiftCardSchema,
   type AdjustGiftCardBalanceFormValues,
   type GiftCardValues,
   type IssueGiftCardFormValues,
+  type RedeemGiftCardValues,
 } from "./validations";
 import { generateGiftCardCode } from "./generate-code";
 
@@ -115,6 +119,7 @@ export async function verifyGiftCardPaymentAction(input: VerifyGiftCardPaymentIn
         recipientName: giftCard.recipientName ?? undefined,
         message: giftCard.message ?? undefined,
         isForSelf,
+        redeemUrl: `${siteConfig.url}/account`,
       }),
     });
   } catch {
@@ -122,6 +127,25 @@ export async function verifyGiftCardPaymentAction(input: VerifyGiftCardPaymentIn
   }
 
   return { code: giftCard.code };
+}
+
+/**
+ * Self-service redemption — signed-in user pastes in a gift card code and
+ * its value moves into their own wallet. This is the only path a gifted
+ * (OTHER-recipient) card's value ever reaches a spendable balance; a
+ * SELF-purchase is auto-redeemed on payment instead (see
+ * verifyGiftCardPaymentAction above) but hitting this action for one too
+ * is harmless — redeemGiftCardByCode just reports it's already redeemed.
+ */
+export async function redeemGiftCardAction(input: RedeemGiftCardValues) {
+  const user = await requireUser();
+  const values = redeemGiftCardSchema.parse(input);
+
+  const card = await redeemGiftCardByCode(values.code, user.id);
+
+  revalidatePath("/account");
+  revalidatePath("/checkout");
+  return { amount: card.creditedAmount };
 }
 
 // ---------------------------------------------------------------------------

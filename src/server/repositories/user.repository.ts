@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 
 export async function findUserById(userId: string) {
   return prisma.user.findUnique({ where: { id: userId } });
@@ -7,6 +8,31 @@ export async function findUserById(userId: string) {
 /** Case-sensitive exact match — email is stored/compared as entered, same as Better Auth's own lookup. */
 export async function findUserByEmail(email: string) {
   return prisma.user.findUnique({ where: { email } });
+}
+
+/** Personal admin-sidebar reorder preference (see config/admin-navigation.ts) — an ordered array of AdminNavItem.href strings, or null to use the config's default order. */
+export async function updateAdminNavOrder(userId: string, order: string[]) {
+  await prisma.user.update({ where: { id: userId }, data: { adminNavOrder: order } });
+}
+
+/**
+ * Signed delta to `walletBalance` — positive credits, negative debits.
+ * Uses Prisma's atomic `increment` (not read-then-write) so concurrent
+ * callers (e.g. two tabs placing an order at once) can never race each
+ * other into an inconsistent balance. Callers that must not let a balance
+ * go negative (spending at checkout) are responsible for checking the
+ * current balance first, inside the same transaction — see
+ * order.repository.ts's createOrder.
+ */
+export async function adjustUserWalletBalance(
+  userId: string,
+  delta: number,
+  client: Prisma.TransactionClient | typeof prisma = prisma,
+) {
+  return client.user.update({
+    where: { id: userId },
+    data: { walletBalance: { increment: delta } },
+  });
 }
 
 // ---------------------------------------------------------------------------

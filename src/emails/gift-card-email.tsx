@@ -4,6 +4,7 @@ import {
   Head,
   Heading,
   Html,
+  Link,
   Preview,
   Section,
   Text,
@@ -17,6 +18,8 @@ interface GiftCardEmailProps {
   recipientName?: string;
   message?: string;
   isForSelf: boolean;
+  /** Where to redeem the code (account page) — SELF cards are already redeemed by the time this sends, so this is only ever shown for a gifted card. */
+  redeemUrl: string;
 }
 
 export function GiftCardEmail({
@@ -26,6 +29,7 @@ export function GiftCardEmail({
   recipientName,
   message,
   isForSelf,
+  redeemUrl,
 }: GiftCardEmailProps) {
   const greeting = isForSelf
     ? "Here's your gift card"
@@ -68,9 +72,20 @@ export function GiftCardEmail({
               &ldquo;{message}&rdquo;
             </Text>
           ) : null}
-          <Text style={{ margin: "16px 0 4px", fontSize: "13px", color: "#666" }}>
-            Mention this code when ordering, or ask us to redeem it against your bill.
-          </Text>
+          {isForSelf ? (
+            <Text style={{ margin: "16px 0 4px", fontSize: "13px", color: "#666" }}>
+              This has already been added to your wallet balance — spend it at checkout on your next
+              order.
+            </Text>
+          ) : (
+            <Text style={{ margin: "16px 0 4px", fontSize: "13px", color: "#666" }}>
+              To use it, sign in and redeem this code on your{" "}
+              <Link href={redeemUrl} style={{ color: "#c9105f" }}>
+                account page
+              </Link>{" "}
+              — it&rsquo;ll be added to your wallet balance, ready to spend at checkout.
+            </Text>
+          )}
         </Container>
       </Body>
     </Html>

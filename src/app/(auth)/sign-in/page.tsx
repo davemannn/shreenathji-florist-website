@@ -7,6 +7,8 @@ export const metadata: Metadata = {
 };
 
 export default function SignInPage() {
+  const googleEnabled = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
@@ -15,7 +17,7 @@ export default function SignInPage() {
       </div>
       {/* SignInForm reads ?redirectTo via useSearchParams, which requires a Suspense boundary. */}
       <Suspense>
-        <SignInForm />
+        <SignInForm googleEnabled={googleEnabled} />
       </Suspense>
     </div>
   );

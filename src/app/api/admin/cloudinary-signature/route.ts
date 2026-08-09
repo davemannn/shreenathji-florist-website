@@ -18,6 +18,8 @@ export async function POST(request: Request) {
       "blog:manage",
       "banners:manage",
       "gallery:manage",
+      "testimonials:manage",
+      "subscriptions:manage",
     ]);
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

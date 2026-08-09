@@ -9,7 +9,11 @@ import { Label } from "@/components/ui/label";
 import { sendContactMessageAction } from "../actions";
 import { contactMessageSchema, type ContactMessageValues } from "../validations";
 
-export function ContactForm() {
+export function ContactForm({
+  messagePlaceholder = "How can we help?",
+}: {
+  messagePlaceholder?: string;
+}) {
   const {
     register,
     handleSubmit,
@@ -54,7 +58,7 @@ export function ContactForm() {
           id="message"
           rows={5}
           className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-lg border bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:ring-3"
-          placeholder="How can we help?"
+          placeholder={messagePlaceholder}
           aria-invalid={!!errors.message}
           {...register("message")}
         />

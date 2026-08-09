@@ -6,7 +6,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StarRating } from "@/components/shared/star-rating";
 import type { Testimonial } from "../types";
 
@@ -34,6 +34,7 @@ export function TestimonialsCarousel({ testimonials }: { testimonials: Testimoni
               </blockquote>
               <figcaption className="mt-auto flex items-center gap-3">
                 <Avatar>
+                  {testimonial.photoUrl ? <AvatarImage src={testimonial.photoUrl} /> : null}
                   <AvatarFallback className="bg-brand/10 text-brand">
                     {initials(testimonial.authorName)}
                   </AvatarFallback>

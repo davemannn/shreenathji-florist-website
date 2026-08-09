@@ -21,7 +21,9 @@ export default async function AdminSettingsPage() {
       <div>
         <h1 className="text-2xl font-semibold">Settings</h1>
         <p className="text-muted-foreground text-sm">
-          Delivery pricing used across the storefront.
+          Base delivery charge, free-delivery threshold, and the Midnight booking cutoff — plus tax
+          and payment method configuration. Per-slot surcharges (Express/Instant, Midnight) live on
+          the Delivery Slots page instead.
         </p>
       </div>
 

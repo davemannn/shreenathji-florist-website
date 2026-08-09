@@ -10,7 +10,9 @@ export function WalletCard({ balance }: { balance: number }) {
       <div>
         <p className="text-muted-foreground text-xs tracking-wide uppercase">Wallet Balance</p>
         <p className="text-2xl font-semibold">{formatINR(balance)}</p>
-        <p className="text-muted-foreground text-xs">Add funds & redeem — coming soon.</p>
+        <p className="text-muted-foreground text-xs">
+          Credited by redeeming a gift card — spend it at checkout.
+        </p>
       </div>
     </div>
   );

@@ -13,6 +13,20 @@ import {
 } from "@/server/repositories/delivery-slot.repository";
 import { deliverySlotFormSchema, type DeliverySlotFormValues } from "./validations";
 
+/**
+ * A slot's charge/active-state is the real, single source of truth for the
+ * Same Day / Midnight marketing pages and checkout pricing now (see
+ * delivery-slot.repository.ts's findActiveDeliverySlotByType) — so every
+ * mutation here needs to revalidate those alongside the admin page itself.
+ */
+function revalidateDeliveryPricingPaths() {
+  revalidatePath("/admin/delivery-slots");
+  revalidatePath("/cart");
+  revalidatePath("/checkout");
+  revalidatePath("/same-day-delivery");
+  revalidatePath("/midnight-delivery");
+}
+
 export async function createDeliverySlotAction(input: DeliverySlotFormValues) {
   const session = await requireAdminCapability("delivery_slots:manage");
   const values = deliverySlotFormSchema.parse(input);
@@ -26,7 +40,7 @@ export async function createDeliverySlotAction(input: DeliverySlotFormValues) {
     summary: `Created (₹${values.extraCharge})`,
   });
 
-  revalidatePath("/admin/delivery-slots");
+  revalidateDeliveryPricingPaths();
   return { id: slot.id };
 }
 
@@ -53,7 +67,7 @@ export async function updateDeliverySlotAction(id: string, input: DeliverySlotFo
     });
   }
 
-  revalidatePath("/admin/delivery-slots");
+  revalidateDeliveryPricingPaths();
   revalidatePath(`/admin/delivery-slots/${id}`);
 }
 
@@ -69,7 +83,7 @@ export async function setDeliverySlotActiveAction(id: string, isActive: boolean)
     summary: isActive ? "Reactivated" : "Deactivated",
   });
 
-  revalidatePath("/admin/delivery-slots");
+  revalidateDeliveryPricingPaths();
 }
 
 export async function deleteDeliverySlotAction(id: string) {
@@ -87,11 +101,13 @@ export async function deleteDeliverySlotAction(id: string) {
     });
   }
 
-  revalidatePath("/admin/delivery-slots");
+  revalidateDeliveryPricingPaths();
 }
 
 export async function reorderDeliverySlotsAction(orderedIds: string[]) {
   await requireAdminCapability("delivery_slots:manage");
   await reorderDeliverySlotsRepo(orderedIds);
-  revalidatePath("/admin/delivery-slots");
+  // Sort order also breaks ties in findActiveDeliverySlotByType if a store
+  // ever has more than one active slot of the same type.
+  revalidateDeliveryPricingPaths();
 }

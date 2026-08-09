@@ -6,13 +6,18 @@ import {
   findActiveCouponByCode,
   incrementCouponUsage,
 } from "@/server/repositories/coupon.repository";
-import { findDeliverySlotById } from "@/server/repositories/delivery-slot.repository";
+import {
+  findActiveDeliverySlotByType,
+  findDeliverySlotById,
+} from "@/server/repositories/delivery-slot.repository";
 import { findProductsTaxInfo } from "@/server/repositories/product.repository";
 import { listUpcomingHolidays } from "@/server/repositories/holiday.repository";
 import { deleteCartSnapshot } from "@/server/repositories/cart-snapshot.repository";
+import { findUserById } from "@/server/repositories/user.repository";
 import { getStoreSettings } from "@/features/settings/queries";
 import { effectiveSlotCharge, isSlotAvailable, toIsoDate, type HolidayInfo } from "@/lib/delivery";
 import { isInterStateOrder, resolveProductTax, splitGst, splitInclusiveTax } from "@/lib/tax";
+import { haversineDistanceKm } from "@/lib/geo";
 
 export interface CartLineItemInput {
   productId: string;
@@ -34,11 +39,16 @@ export interface PlaceOrderInput {
   deliveryCity: string;
   deliveryState: string;
   deliveryPincode: string;
+  /** Only present when the address was picked via the Places autocomplete (or a saved address that already has one) — see checkDeliveryServiceability below. */
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
   deliveryDate: Date;
   deliverySlotId?: string;
   messageCard?: string;
   giftWrap: boolean;
   couponCode?: string;
+  /** Customer opted to apply wallet balance — the actual amount used is computed server-side, never trusted from the client. */
+  useWallet?: boolean;
   paymentMethod: "COD" | "RAZORPAY";
 }
 
@@ -111,13 +121,21 @@ export async function calculateOrderTotals(
         throw new Error("The selected delivery slot is no longer available for this date.");
       }
 
+      // Only Express/Instant (FIXED) ever needs the Midnight slot's charge —
+      // as what it carries once booked same-day past the cutoff — so this
+      // extra lookup is skipped for every other slot type.
+      const midnightCharge =
+        slot.type === "FIXED"
+          ? ((await findActiveDeliverySlotByType("MIDNIGHT"))?.extraCharge ?? 0)
+          : 0;
+
       deliveryCharge += effectiveSlotCharge(
         slot.type,
         dateIso,
         slot.extraCharge,
         undefined,
         settings.midnightCutoffHour,
-        settings.midnightCharge,
+        midnightCharge,
       );
     }
   }
@@ -146,13 +164,56 @@ export async function placeOrder(input: PlaceOrderInput) {
 
   const settings = await getStoreSettings();
 
+  // Re-checked server-side, never trusted from the client — same reasoning
+  // as the wallet-balance re-check just below. Skipped (fail-open) unless
+  // BOTH the address has a geocode (only set via the Places autocomplete)
+  // AND the admin has configured a store location — a manually-typed
+  // address with no coordinates, or an unconfigured store location, means
+  // there's nothing to check against, so the order proceeds either way.
+  if (
+    input.deliveryLatitude != null &&
+    input.deliveryLongitude != null &&
+    settings.storeLatitude != null &&
+    settings.storeLongitude != null
+  ) {
+    const distanceKm = haversineDistanceKm(
+      settings.storeLatitude,
+      settings.storeLongitude,
+      input.deliveryLatitude,
+      input.deliveryLongitude,
+    );
+    if (distanceKm > settings.deliveryRadiusKm) {
+      throw new Error(
+        `This address is about ${Math.round(distanceKm)} km away — outside our ${settings.deliveryRadiusKm} km delivery area. Please call the store to check availability, or choose in-store pickup instead.`,
+      );
+    }
+  }
+
+  // The wallet balance used here is fetched fresh, server-side — never the
+  // balance the client last saw, which could be stale (another tab already
+  // spending it, or a redemption landing mid-checkout).
+  let walletAmountUsed = 0;
+  if (input.useWallet) {
+    const user = await findUserById(input.userId);
+    walletAmountUsed = Math.min(user?.walletBalance ?? 0, totals.total);
+  }
+  const remainingTotal = totals.total - walletAmountUsed;
+  // Wallet fully covering the total resolves to its own payment method —
+  // there's no cash due and no gateway involved, so it must never be
+  // recorded as COD (delivery staff would wrongly expect to collect
+  // payment) or RAZORPAY (no gateway transaction actually exists).
+  const resolvedPaymentMethod: "COD" | "RAZORPAY" | "WALLET" =
+    remainingTotal === 0 ? "WALLET" : input.paymentMethod;
+
   // Client-side toggles (checkout UI, cart preview) only hide the option —
   // a disabled method is still trivially reachable by anyone calling this
-  // action directly, so it must be rejected here too.
-  if (input.paymentMethod === "COD" && !settings.codEnabled) {
+  // action directly, so it must be rejected here too. Skipped entirely
+  // when wallet balance covers the full total, since no COD/gateway method
+  // is actually used in that case.
+  if (resolvedPaymentMethod === "COD" && !settings.codEnabled) {
     throw new Error("Cash on Delivery isn't available right now. Please pay online instead.");
   }
-  if (input.paymentMethod === "RAZORPAY" && !settings.razorpayEnabled) {
+  if (resolvedPaymentMethod === "RAZORPAY" && !settings.razorpayEnabled) {
     throw new Error(
       "Online payment isn't available right now. Please choose Cash on Delivery instead.",
     );
@@ -210,7 +271,8 @@ export async function placeOrder(input: PlaceOrderInput) {
     discount: totals.discount,
     deliveryCharge: totals.deliveryCharge,
     total: totals.total,
-    paymentMethod: input.paymentMethod,
+    walletAmountUsed,
+    paymentMethod: resolvedPaymentMethod,
     recipientName: input.recipientName,
     recipientPhone: input.recipientPhone,
     deliveryLine1: input.deliveryLine1,
@@ -218,6 +280,8 @@ export async function placeOrder(input: PlaceOrderInput) {
     deliveryCity: input.deliveryCity,
     deliveryState: input.deliveryState,
     deliveryPincode: input.deliveryPincode,
+    deliveryLatitude: input.deliveryLatitude,
+    deliveryLongitude: input.deliveryLongitude,
     deliveryDate: input.deliveryDate,
     deliverySlotId: input.deliverySlotId,
     messageCard: input.messageCard,

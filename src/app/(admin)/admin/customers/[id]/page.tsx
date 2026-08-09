@@ -1,16 +1,34 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Cake, Heart, Bell } from "lucide-react";
 import { requireAdminSession } from "@/server/auth/require-admin";
 import { getCustomerForAdmin } from "@/features/customer/queries";
 import { SegmentBadge } from "@/features/customer/components/segment-badge";
 import { CustomerTags } from "@/features/customer/components/customer-tags";
+import { getRemindersForUser } from "@/features/reminder/queries";
 import { Badge } from "@/components/ui/badge";
 import { formatINR } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Customer",
 };
+
+const MONTH_LABEL = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+const OCCASION_ICON = { BIRTHDAY: Cake, ANNIVERSARY: Heart, OTHER: Bell };
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-IN", {
@@ -28,6 +46,7 @@ export default async function AdminCustomerDetailPage({
 
   const customer = await getCustomerForAdmin(id);
   if (!customer) notFound();
+  const reminders = await getRemindersForUser(customer.id);
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -77,6 +96,36 @@ export default async function AdminCustomerDetailPage({
                 ) : null}
               </li>
             ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {reminders.length > 0 ? (
+        <div>
+          <h2 className="mb-2 text-sm font-semibold">Reminders</h2>
+          <p className="text-muted-foreground mb-2 text-xs">
+            Saved by the customer — a personal call or note ahead of the date goes a long way.
+          </p>
+          <ul className="flex flex-col gap-2">
+            {reminders.map((reminder) => {
+              const Icon = OCCASION_ICON[reminder.occasion];
+              return (
+                <li
+                  key={reminder.id}
+                  className="border-border flex items-center gap-3 rounded-md border p-3 text-sm"
+                >
+                  <Icon className="text-brand size-4 shrink-0" aria-hidden="true" />
+                  <div>
+                    <span className="font-medium">{reminder.recipientName}</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      — {MONTH_LABEL[reminder.month - 1]} {reminder.day}
+                      {reminder.note ? ` · ${reminder.note}` : ""}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       ) : null}

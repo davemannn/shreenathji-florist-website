@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUpSchema, type SignUpValues } from "../validations";
+import { GoogleSignInButton } from "./google-sign-in-button";
 
-export function SignUpForm() {
+export function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
   const router = useRouter();
 
   const {
@@ -36,45 +37,57 @@ export function SignUpForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="name">Full name</Label>
-        <Input id="name" autoComplete="name" aria-invalid={!!errors.name} {...register("name")} />
-        {errors.name ? <p className="text-destructive text-xs">{errors.name.message}</p> : null}
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={!!errors.email}
-          {...register("email")}
-        />
-        {errors.email ? <p className="text-destructive text-xs">{errors.email.message}</p> : null}
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="new-password"
-          aria-invalid={!!errors.password}
-          {...register("password")}
-        />
-        {errors.password ? (
-          <p className="text-destructive text-xs">{errors.password.message}</p>
-        ) : null}
-      </div>
-      <Button type="submit" variant="brand" disabled={isSubmitting} className="mt-2 h-10">
-        {isSubmitting ? "Creating account…" : "Create Account"}
-      </Button>
-      <p className="text-muted-foreground text-center text-sm">
-        Already have an account?{" "}
-        <Link href="/sign-in" className="text-foreground underline underline-offset-4">
-          Sign in
-        </Link>
-      </p>
-    </form>
+    <div className="flex flex-col gap-4">
+      {googleEnabled ? (
+        <>
+          <GoogleSignInButton />
+          <div className="flex items-center gap-3">
+            <span className="border-border h-px flex-1 border-t" />
+            <span className="text-muted-foreground text-xs">or</span>
+            <span className="border-border h-px flex-1 border-t" />
+          </div>
+        </>
+      ) : null}
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="name">Full name</Label>
+          <Input id="name" autoComplete="name" aria-invalid={!!errors.name} {...register("name")} />
+          {errors.name ? <p className="text-destructive text-xs">{errors.name.message}</p> : null}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            aria-invalid={!!errors.email}
+            {...register("email")}
+          />
+          {errors.email ? <p className="text-destructive text-xs">{errors.email.message}</p> : null}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            aria-invalid={!!errors.password}
+            {...register("password")}
+          />
+          {errors.password ? (
+            <p className="text-destructive text-xs">{errors.password.message}</p>
+          ) : null}
+        </div>
+        <Button type="submit" variant="brand" disabled={isSubmitting} className="mt-2 h-10">
+          {isSubmitting ? "Creating account…" : "Create Account"}
+        </Button>
+        <p className="text-muted-foreground text-center text-sm">
+          Already have an account?{" "}
+          <Link href="/sign-in" className="text-foreground underline underline-offset-4">
+            Sign in
+          </Link>
+        </p>
+      </form>
+    </div>
   );
 }

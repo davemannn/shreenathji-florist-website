@@ -9,9 +9,29 @@ import { OtpEmail, type OtpEmailPurpose } from "@/emails/otp-email";
 import { BETTER_AUTH_ADMIN_ROLES } from "./permissions";
 
 /**
- * Server-side Better Auth instance. Email/password only for now (no OAuth
- * provider is registered yet — trivial to add later). The `admin` plugin
- * adds `role`/`banned`/`banReason`/`banExpires` to the User model.
+ * "Continue with Google" for customers — off unless both env vars are set
+ * (see .env.example), so a deployment/dev environment that hasn't created
+ * a Google OAuth Client ID yet still boots fine on email/password alone.
+ * The client-side button (google-sign-in-button.tsx) is itself hidden by a
+ * matching `!!process.env.GOOGLE_CLIENT_ID` check done server-side in the
+ * sign-in/sign-up pages, so the two stay in sync without duplicating the
+ * "is it configured" logic into a second, separate NEXT_PUBLIC_ var.
+ */
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const socialProviders =
+  googleClientId && googleClientSecret
+    ? { google: { clientId: googleClientId, clientSecret: googleClientSecret } }
+    : undefined;
+
+/**
+ * Server-side Better Auth instance. Email/password is the default; Google
+ * sign-in layers on top when configured (see socialProviders above) — both
+ * land the same User row via Better Auth's own account-linking (matched by
+ * verified email), so a customer who signed up with a password can later
+ * "Continue with Google" on the same address without creating a duplicate
+ * account. The `admin` plugin adds `role`/`banned`/`banReason`/`banExpires`
+ * to the User model.
  *
  * `adminRoles` here only controls who can call Better Auth's own *built-in*
  * admin API (ban/unban/impersonate) — deliberately narrowed to super_admin
@@ -28,6 +48,7 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "mysql" }),
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BETTER_AUTH_URL,
+  socialProviders,
   emailAndPassword: {
     enabled: true,
     // A signup/sign-in still needs a password — the emailOTP plugin below

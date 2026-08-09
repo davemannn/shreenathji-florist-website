@@ -13,8 +13,9 @@ import { Label } from "@/components/ui/label";
 // import client-side (see the comment on isAdminRole itself).
 import { isAdminRole } from "@/server/auth/permissions";
 import { signInSchema, type SignInValues } from "../validations";
+import { GoogleSignInButton } from "./google-sign-in-button";
 
-export function SignInForm() {
+export function SignInForm({ googleEnabled }: { googleEnabled: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/";
@@ -60,48 +61,60 @@ export function SignInForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="email"
-          aria-invalid={!!errors.email}
-          {...register("email")}
-        />
-        {errors.email ? <p className="text-destructive text-xs">{errors.email.message}</p> : null}
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
-          <Link
-            href="/forgot-password"
-            className="text-muted-foreground text-xs underline underline-offset-4"
-          >
-            Forgot password?
-          </Link>
+    <div className="flex flex-col gap-4">
+      {googleEnabled ? (
+        <>
+          <GoogleSignInButton redirectTo={redirectTo} />
+          <div className="flex items-center gap-3">
+            <span className="border-border h-px flex-1 border-t" />
+            <span className="text-muted-foreground text-xs">or</span>
+            <span className="border-border h-px flex-1 border-t" />
+          </div>
+        </>
+      ) : null}
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            aria-invalid={!!errors.email}
+            {...register("email")}
+          />
+          {errors.email ? <p className="text-destructive text-xs">{errors.email.message}</p> : null}
         </div>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          aria-invalid={!!errors.password}
-          {...register("password")}
-        />
-        {errors.password ? (
-          <p className="text-destructive text-xs">{errors.password.message}</p>
-        ) : null}
-      </div>
-      <Button type="submit" variant="brand" disabled={isSubmitting} className="mt-2 h-10">
-        {isSubmitting ? "Signing in…" : "Sign In"}
-      </Button>
-      <p className="text-muted-foreground text-center text-sm">
-        Don&apos;t have an account?{" "}
-        <Link href="/sign-up" className="text-foreground underline underline-offset-4">
-          Sign up
-        </Link>
-      </p>
-    </form>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Password</Label>
+            <Link
+              href="/forgot-password"
+              className="text-muted-foreground text-xs underline underline-offset-4"
+            >
+              Forgot password?
+            </Link>
+          </div>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            aria-invalid={!!errors.password}
+            {...register("password")}
+          />
+          {errors.password ? (
+            <p className="text-destructive text-xs">{errors.password.message}</p>
+          ) : null}
+        </div>
+        <Button type="submit" variant="brand" disabled={isSubmitting} className="mt-2 h-10">
+          {isSubmitting ? "Signing in…" : "Sign In"}
+        </Button>
+        <p className="text-muted-foreground text-center text-sm">
+          Don&apos;t have an account?{" "}
+          <Link href="/sign-up" className="text-foreground underline underline-offset-4">
+            Sign up
+          </Link>
+        </p>
+      </form>
+    </div>
   );
 }

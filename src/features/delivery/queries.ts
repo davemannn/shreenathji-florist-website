@@ -12,7 +12,7 @@ const DELIVERY_FEATURES: DeliveryFeature[] = [
     id: "1",
     icon: "clock",
     title: "Same Day Delivery",
-    description: "Order before 4 PM for delivery anywhere in Vadodara, today.",
+    description: "No cutoff — order anytime for delivery within 2-4 hours, anywhere in Vadodara.",
   },
   {
     id: "2",

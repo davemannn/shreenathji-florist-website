@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight } from "lucide-react";
 import { getProductBySlug, getRelatedProducts } from "@/features/product/queries";
 import { ProductGallery } from "@/features/product/components/product-gallery";
 import { VariantSelectionProvider } from "@/features/product/components/variant-selection-context";
 import { AddToCartForm } from "@/features/product/components/add-to-cart-form";
 import { DeliveryEstimate } from "@/features/product/components/delivery-estimate";
-import { ProductReviews } from "@/features/product/components/product-reviews";
+import { ProductReviewsSection } from "@/features/review/components/product-reviews-section";
 import { RelatedProducts } from "@/features/product/components/related-products";
 import { StarRating } from "@/components/shared/star-rating";
+import { Breadcrumb } from "@/components/shared/breadcrumb";
+import { getStoreSettings } from "@/features/settings/queries";
 
 export async function generateMetadata({
   params,
@@ -24,24 +24,20 @@ export default async function ProductDetailPage({ params }: PageProps<"/shop/pro
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const relatedProducts = await getRelatedProducts(product.id, product.categorySlugs);
+  const [relatedProducts, { midnightCutoffHour }] = await Promise.all([
+    getRelatedProducts(product.id, product.categorySlugs),
+    getStoreSettings(),
+  ]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 md:px-6 lg:px-8">
-      <nav
-        aria-label="Breadcrumb"
-        className="text-muted-foreground mb-6 flex items-center gap-1.5 text-xs"
-      >
-        <Link href="/" className="hover:text-foreground">
-          Home
-        </Link>
-        <ChevronRight className="size-3" aria-hidden="true" />
-        <Link href="/shop" className="hover:text-foreground">
-          Shop
-        </Link>
-        <ChevronRight className="size-3" aria-hidden="true" />
-        <span className="text-foreground">{product.title}</span>
-      </nav>
+      <Breadcrumb
+        items={[
+          { label: "Home", href: "/" },
+          { label: "Shop", href: "/shop" },
+          { label: product.title },
+        ]}
+      />
 
       <VariantSelectionProvider
         defaultVariantId={(product.variants.find((v) => v.isDefault) ?? product.variants[0])?.id}
@@ -58,7 +54,7 @@ export default async function ProductDetailPage({ params }: PageProps<"/shop/pro
               <h1 className="mt-2 text-3xl md:text-4xl">{product.title}</h1>
             </div>
             <AddToCartForm product={product} />
-            <DeliveryEstimate />
+            <DeliveryEstimate midnightCutoffHour={midnightCutoffHour} />
             <div>
               <h2 className="mb-2 text-sm font-semibold tracking-wide uppercase">Description</h2>
               <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>
@@ -67,7 +63,7 @@ export default async function ProductDetailPage({ params }: PageProps<"/shop/pro
         </div>
       </VariantSelectionProvider>
 
-      <ProductReviews reviews={product.reviews} />
+      <ProductReviewsSection productId={product.id} productSlug={slug} reviews={product.reviews} />
       <RelatedProducts products={relatedProducts} />
     </div>
   );

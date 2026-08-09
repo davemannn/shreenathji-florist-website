@@ -17,6 +17,8 @@ export interface CreateAddressInput {
   city: string;
   state: string;
   pincode: string;
+  latitude?: number;
+  longitude?: number;
   isDefault?: boolean;
 }
 
@@ -33,6 +35,8 @@ export interface UpdateAddressInput {
   city: string;
   state: string;
   pincode: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 /** Scoped by userId — never trust a client-supplied addressId alone before mutating. */

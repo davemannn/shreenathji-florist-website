@@ -16,6 +16,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  PlaceAutocompleteInput,
+  type PlaceResult,
+} from "@/components/shared/place-autocomplete-input";
 import { addAddressAction, updateAddressAction } from "../actions";
 import { addressSchema, type AddressValues } from "../validations";
 import type { AccountAddress } from "../types";
@@ -34,6 +38,7 @@ export function AddressFormDialog({ address, onSaved }: AddressFormDialogProps) 
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<AddressValues>({
     resolver: zodResolver(addressSchema),
@@ -46,6 +51,8 @@ export function AddressFormDialog({ address, onSaved }: AddressFormDialogProps) 
       city: address?.city ?? "",
       state: address?.state ?? "",
       pincode: address?.pincode ?? "",
+      latitude: address?.latitude,
+      longitude: address?.longitude,
     },
   });
 
@@ -61,10 +68,22 @@ export function AddressFormDialog({ address, onSaved }: AddressFormDialogProps) 
         city: address?.city ?? "",
         state: address?.state ?? "",
         pincode: address?.pincode ?? "",
+        latitude: address?.latitude,
+        longitude: address?.longitude,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  function handlePlaceSelected(place: PlaceResult) {
+    setValue("line1", place.line1, { shouldDirty: true, shouldValidate: true });
+    setValue("city", place.city, { shouldDirty: true, shouldValidate: true });
+    setValue("state", place.state, { shouldDirty: true, shouldValidate: true });
+    if (place.pincode)
+      setValue("pincode", place.pincode, { shouldDirty: true, shouldValidate: true });
+    setValue("latitude", place.latitude, { shouldDirty: true });
+    setValue("longitude", place.longitude, { shouldDirty: true });
+  }
 
   async function onSubmit(values: AddressValues) {
     try {
@@ -130,6 +149,7 @@ export function AddressFormDialog({ address, onSaved }: AddressFormDialogProps) 
               ) : null}
             </div>
           </div>
+          <PlaceAutocompleteInput onSelect={handlePlaceSelected} />
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="line1">Address Line 1</Label>
             <Input id="line1" aria-invalid={!!errors.line1} {...register("line1")} />

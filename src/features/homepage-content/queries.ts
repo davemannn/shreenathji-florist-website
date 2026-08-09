@@ -1,6 +1,6 @@
 import { pexelsPhoto } from "@/lib/stock-photo";
 import { listActiveBannersByType } from "@/server/repositories/banner.repository";
-import type { HeroSlide, NewsletterTeaserContent, OccasionBanner, PromoBanner } from "./types";
+import type { HeroSlide, SubscribeTeaserContent, OccasionBanner, PromoBanner } from "./types";
 
 // DB-backed via the Banner model (admin-managed at /admin/banners, with
 // optional startsAt/endsAt scheduling — see banner.repository.ts). The
@@ -79,10 +79,12 @@ const FALLBACK_OCCASION_BANNER: OccasionBanner = {
   imageUrl: pexelsPhoto("7911051", 900),
 };
 
-const NEWSLETTER_TEASER: NewsletterTeaserContent = {
+const SUBSCRIBE_TEASER: SubscribeTeaserContent = {
   eyebrow: "Subscribe & Save",
-  heading: "Flower Subscriptions",
-  body: "Get fresh blooms delivered on your schedule — weekly, fortnightly, or monthly. Cancel anytime.",
+  heading: "Never Run Out of Fresh Flowers",
+  body: "Daily pooja flowers, weekly bouquet boxes, or bulk raw flowers — pick weekly, monthly, or annual billing, save more on longer plans, and cancel anytime.",
+  ctaLabel: "Explore Subscriptions",
+  ctaHref: "/subscriptions",
 };
 
 export async function getHeroSlides(): Promise<HeroSlide[]> {
@@ -130,6 +132,6 @@ export async function getOccasionBanner(): Promise<OccasionBanner> {
   };
 }
 
-export async function getNewsletterTeaser(): Promise<NewsletterTeaserContent> {
-  return NEWSLETTER_TEASER;
+export async function getSubscribeTeaser(): Promise<SubscribeTeaserContent> {
+  return SUBSCRIBE_TEASER;
 }

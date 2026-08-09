@@ -7,6 +7,7 @@ import { findUserById } from "@/server/repositories/user.repository";
 import { listOrdersForUser } from "@/server/repositories/order.repository";
 import { SignOutButton } from "@/features/auth/components/sign-out-button";
 import { WalletCard } from "@/features/account/components/wallet-card";
+import { RedeemGiftCardForm } from "@/features/gift-card/components/redeem-gift-card-form";
 import { ACTIVE_ORDER_STATUSES } from "@/features/account/types";
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default async function AccountPage() {
       </div>
 
       <WalletCard balance={user?.walletBalance ?? 0} />
+      <RedeemGiftCardForm />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Link
@@ -51,6 +53,20 @@ export default async function AccountPage() {
         >
           <p className="text-2xl font-semibold">{orders.length}</p>
           <p className="text-muted-foreground text-sm">Total orders placed</p>
+        </Link>
+        <Link
+          href="/account/subscriptions"
+          className="border-border hover:bg-muted rounded-xs border p-5 transition-colors"
+        >
+          <p className="text-sm font-medium">Flower Subscriptions</p>
+          <p className="text-muted-foreground text-sm">Manage recurring deliveries.</p>
+        </Link>
+        <Link
+          href="/account/reminders"
+          className="border-border hover:bg-muted rounded-xs border p-5 transition-colors"
+        >
+          <p className="text-sm font-medium">Reminders</p>
+          <p className="text-muted-foreground text-sm">Never miss a birthday or anniversary.</p>
         </Link>
       </div>
 

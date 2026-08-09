@@ -25,6 +25,7 @@ export default async function AccountOrdersPage() {
     paymentMethod: order.paymentMethod,
     paymentStatus: order.paymentStatus,
     total: order.total,
+    walletAmountUsed: order.walletAmountUsed,
     createdAt: order.createdAt.toISOString(),
     deliveryDate: order.deliveryDate.toISOString(),
     items: order.items.map((item) => ({

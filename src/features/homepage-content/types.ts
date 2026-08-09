@@ -30,8 +30,10 @@ export interface OccasionBanner {
   imageUrl?: string;
 }
 
-export interface NewsletterTeaserContent {
+export interface SubscribeTeaserContent {
   eyebrow: string;
   heading: string;
   body: string;
+  ctaLabel: string;
+  ctaHref: string;
 }

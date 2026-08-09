@@ -8,8 +8,10 @@ export interface GiftCardDetail {
   recipientEmail?: string;
   message?: string;
   deliveryDate?: string;
-  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
   createdAt: string;
+  /** Set once the card's value has moved into someone's wallet — see redeemGiftCardAction. */
+  redeemedAt?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -38,7 +40,10 @@ export interface AdminGiftCard {
   recipientPhone?: string;
   message?: string;
   deliveryDate?: string;
-  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED";
+  paymentStatus: "PENDING" | "PAID" | "FAILED" | "REFUNDED" | "PARTIALLY_REFUNDED";
   createdAt: string;
+  redeemedAt?: string;
+  redeemedByName?: string;
+  redeemedByEmail?: string;
   adjustments?: AdminGiftCardAdjustment[];
 }

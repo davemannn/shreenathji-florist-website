@@ -19,39 +19,55 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model User {
-  id                  String               @id @default(cuid())
-  name                String
-  email               String               @unique
-  emailVerified       Boolean              @default(false)
-  image               String?
-  role                String?
-  banned              Boolean?             @default(false)
-  banReason           String?
-  banExpires          DateTime?
+  id                    String                 @id @default(cuid())
+  name                  String
+  email                 String                 @unique
+  emailVerified         Boolean                @default(false)
+  image                 String?
+  role                  String?
+  banned                Boolean?               @default(false)
+  banReason             String?
+  banExpires            DateTime?
   // Staff contact info (delivery_guy in particular — a store manager may
   // need to call them). Nullable, harmless for regular customers too.
-  phone               String?
-  // Starts at 0 — no top-up/redeem flow yet, this is a real (not fake)
-  // field the account dashboard reads, ready for a future wallet feature.
-  walletBalance       Int                  @default(0)
+  phone                 String?
+  // Store credit — credited by redeeming a GiftCard (see GiftCard.redeemedAt
+  // below) and spent at checkout (Order.walletAmountUsed). Debited/credited
+  // via user.repository.ts's adjustUserWalletBalance, always inside the
+  // same transaction as whatever order/redemption caused the change.
+  walletBalance         Int                    @default(0)
   // Opt-out for the admin bulk/marketing sender's segment-targeted sends
   // (features/marketing-email) — separate from NewsletterSubscriber, since
   // being a customer implies a different (narrower, existing-relationship)
   // consent basis than explicitly opting into the newsletter. Order/OTP/
   // account emails are unaffected by this — it only gates marketing sends.
-  marketingOptOut     Boolean              @default(false)
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  sessions            Session[]
-  accounts            Account[]
-  addresses           Address[]
-  orders              Order[]
-  giftCards           GiftCard[]
+  marketingOptOut       Boolean                @default(false)
+  /// Staff-only personalization: this admin's own drag-reordered admin
+  /// sidebar item order, as an array of `AdminNavItem.href` strings (see
+  /// config/admin-navigation.ts). Null = use the config's default order.
+  /// Purely cosmetic — never affects which items a role can see, only the
+  /// order they're listed in for this one person. Harmless/unused for
+  /// regular customers.
+  adminNavOrder         Json?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  sessions              Session[]
+  accounts              Account[]
+  addresses             Address[]
+  orders                Order[]
+  giftCards             GiftCard[]
+  // Gift cards THIS user redeemed to their own wallet — distinct from
+  // `giftCards` above (cards they purchased, which may have been redeemed
+  // by someone else entirely if bought as a gift).
+  giftCardRedemptions   GiftCard[]             @relation("GiftCardRedemptions")
   // Orders assigned to this user when they're staff with the delivery_guy role.
-  deliveryAssignments Order[]              @relation("DeliveryAssignments")
-  giftCardAdjustments GiftCardAdjustment[]
-  cartSnapshot        CartSnapshot?
-  tags                CustomerTag[]
+  deliveryAssignments   Order[]                @relation("DeliveryAssignments")
+  giftCardAdjustments   GiftCardAdjustment[]
+  orderRefundsProcessed OrderRefund[]
+  subscriptions         CustomerSubscription[]
+  reminders             Reminder[]
+  cartSnapshot          CartSnapshot?
+  tags                  CustomerTag[]
 }
 
 model Session {
@@ -123,13 +139,26 @@ enum OrderStatus {
 enum PaymentMethod {
   COD
   RAZORPAY
+  /// The order's full total was covered by the customer's wallet balance —
+  /// no cash to collect and no gateway payment exists, so this must stay
+  /// visually distinct from COD/RAZORPAY everywhere it's displayed (order
+  /// tables, invoices, delivery staff views) to avoid delivery staff
+  /// expecting to collect cash that isn't due. See order.service.ts's
+  /// placeOrder — assigned automatically, never chosen by the customer.
+  WALLET
 }
 
 enum PaymentStatus {
   PENDING
   PAID
   FAILED
+  /// Cumulative Razorpay refunds (Order.refundedAmount) reached the full
+  /// charged amount (total - walletAmountUsed) — see order.repository.ts's
+  /// recordOrderRefund.
   REFUNDED
+  /// Some, but not all, of the charged amount has been refunded so far —
+  /// more can still be refunded up to the charged amount.
+  PARTIALLY_REFUNDED
 }
 
 enum DiscountType {
@@ -248,6 +277,12 @@ model Address {
   city           String
   state          String
   pincode        String
+  /// Set when this address was picked via the Google Places autocomplete
+  /// (see lib/google-maps.ts) — null for addresses typed by hand before
+  /// that existed, or if the picker's geocode lookup failed. Used only to
+  /// check delivery-radius serviceability at checkout; never required.
+  latitude       Float?
+  longitude      Float?
   isDefault      Boolean  @default(false)
   createdAt      DateTime @default(now())
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -289,10 +324,35 @@ model Order {
   discount                 Int           @default(0)
   deliveryCharge           Int           @default(0)
   total                    Int
+  /// Portion of `total` paid from the customer's wallet balance (0 if none
+  /// used). `total` itself is unchanged by this — same pattern as
+  /// `discount` — so what's still owed via COD/Razorpay is `total -
+  /// walletAmountUsed`. Restored to the customer's wallet if the order is
+  /// later cancelled — see order.repository.ts's updateOrderStatus.
+  walletAmountUsed         Int           @default(0)
   paymentMethod            PaymentMethod
   paymentStatus            PaymentStatus @default(PENDING)
   razorpayOrderId          String?
   razorpayPaymentId        String?
+  /// Cumulative ₹ refunded via Razorpay so far (0 if none) — capped at
+  /// `total - walletAmountUsed`, the actual gateway-charged amount. Kept in
+  /// sync with the sum of this order's OrderRefund rows inside the same
+  /// transaction — see order.repository.ts's recordOrderRefund.
+  refundedAmount           Int           @default(0)
+  // --- Razorpay transaction details — fetched once via payments.fetch()
+  // right after payment verification (checkout/actions.ts), not from the
+  // client-side callback (which only ever hands back IDs + a signature).
+  // All null for COD/WALLET orders, or if the fetch itself failed (kept
+  // best-effort — the order is already legitimately paid by then, a
+  // failed detail lookup shouldn't undo that).
+  razorpayMethod           String?
+  razorpayContact          String?
+  razorpayEmail            String?
+  razorpayVpa              String?
+  razorpayBank             String?
+  razorpayWallet           String?
+  razorpayCardLast4        String?
+  razorpayCardNetwork      String?
   recipientName            String
   recipientPhone           String
   deliveryLine1            String
@@ -300,11 +360,23 @@ model Order {
   deliveryCity             String
   deliveryState            String
   deliveryPincode          String
+  /// Snapshotted from the Address (or the checkout map picker) at order
+  /// time, same "never rewritten later" convention as the rest of this
+  /// delivery block — null for orders placed before this existed or whose
+  /// address had no geocode. Not used for anything at read time today;
+  /// kept for a possible future delivery-route/map view.
+  deliveryLatitude         Float?
+  deliveryLongitude        Float?
   deliveryDate             DateTime
   deliverySlotId           String?
   messageCard              String?
   giftWrap                 Boolean       @default(false)
   couponId                 String?
+  /// Set only when this order was auto-created by a recurring subscription
+  /// charge (see the Razorpay webhook handler) — same admin pipeline as any
+  /// other order otherwise (delivery-slot assignment, status tracking,
+  /// invoicing all work identically), this field just traces it back.
+  subscriptionId           String?
   // Admin panel — order management (Phase 2).
   assignedDeliveryPersonId String?
   deliveredAt              DateTime?
@@ -331,17 +403,188 @@ model Order {
   invoiceNumber String?   @unique
   invoicedAt    DateTime?
 
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
-  user                   User                 @relation(fields: [userId], references: [id])
-  deliverySlot           DeliverySlot?        @relation(fields: [deliverySlotId], references: [id])
-  coupon                 Coupon?              @relation(fields: [couponId], references: [id])
-  assignedDeliveryPerson User?                @relation("DeliveryAssignments", fields: [assignedDeliveryPersonId], references: [id])
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  user                   User                  @relation(fields: [userId], references: [id])
+  deliverySlot           DeliverySlot?         @relation(fields: [deliverySlotId], references: [id])
+  coupon                 Coupon?               @relation(fields: [couponId], references: [id])
+  assignedDeliveryPerson User?                 @relation("DeliveryAssignments", fields: [assignedDeliveryPersonId], references: [id])
+  subscription           CustomerSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
   items                  OrderItem[]
   statusHistory          OrderStatusHistory[]
+  refunds                OrderRefund[]
 
   @@index([userId])
   @@index([assignedDeliveryPersonId])
+  @@index([subscriptionId])
+}
+
+/// Audit trail for Razorpay refunds — one row per refund call, so multiple
+/// partial refunds on the same order (and who processed each, and why) are
+/// all individually visible. Order.refundedAmount is the running total kept
+/// in sync with the sum of these rows.
+model OrderRefund {
+  id                String   @id @default(cuid())
+  orderId           String
+  /// ₹ refunded in this transaction (not cumulative — see Order.refundedAmount for that).
+  amount            Int
+  razorpayRefundId  String
+  /// Razorpay's own refund status at the time this was recorded: 'pending' | 'processed' | 'failed'.
+  razorpayStatus    String
+  /// @db.Text — the form allows up to 300 chars (processRefundSchema), well
+  /// past the default VARCHAR(191) this would otherwise get.
+  reason            String?  @db.Text
+  processedByUserId String
+  createdAt         DateTime @default(now())
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  processedBy       User     @relation(fields: [processedByUserId], references: [id])
+
+  @@index([orderId])
+}
+
+// ---------------------------------------------------------------------------
+// Recurring flower subscriptions (daily pooja flowers, weekly bouquet boxes,
+// raw flower deliveries...). Razorpay's Subscriptions API (Plans →
+// Subscriptions, distinct from the one-time Orders/Payments API already
+// used for normal checkout) — see server/payments/razorpay.ts and the
+// webhook handler at app/api/webhooks/razorpay/route.ts, the only
+// server-to-server (not user-click-driven) mutation path in this app.
+// ---------------------------------------------------------------------------
+
+enum SubscriptionPlanCategory {
+  DAILY_POOJA
+  WEEKLY_FLOWERS
+  RAW_FLOWERS
+  CUSTOM
+}
+
+enum BillingInterval {
+  WEEKLY
+  MONTHLY
+  ANNUAL
+}
+
+/// Razorpay's own subscription statuses, used verbatim (not translated into
+/// a house taxonomy) so the webhook handler's mapping from event payloads
+/// stays a straight uppercase-and-store, and so admins looking at Razorpay's
+/// own dashboard see the same vocabulary here.
+enum SubscriptionStatus {
+  CREATED
+  AUTHENTICATED
+  ACTIVE
+  PENDING
+  HALTED
+  CANCELLED
+  COMPLETED
+  EXPIRED
+}
+
+/// The admin-managed catalog entry — the *product* (e.g. "Daily Pooja
+/// Flowers"), not its pricing. Pricing lives on SubscriptionPlanInterval
+/// child rows, since a plan can offer more than one billing cadence.
+model SubscriptionPlan {
+  id            String                     @id @default(cuid())
+  name          String
+  description   String                     @db.Text
+  category      SubscriptionPlanCategory   @default(CUSTOM)
+  imageUrl      String?
+  isActive      Boolean                    @default(true)
+  sortOrder     Int                        @default(0)
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+  intervals     SubscriptionPlanInterval[]
+  subscriptions CustomerSubscription[]
+
+  @@index([isActive, sortOrder])
+}
+
+/// One row per billable cadence a plan offers — maps 1:1 to a real Razorpay
+/// Plan object (Razorpay's own Plans are interval-specific), created via
+/// their API the first time an admin saves this interval with pricing.
+model SubscriptionPlanInterval {
+  id                 String                 @id @default(cuid())
+  subscriptionPlanId String
+  interval           BillingInterval
+  /// ₹ per billing cycle at this interval.
+  price              Int
+  /// vs. the plan's weekly-equivalent baseline — display only ("Save 15%"),
+  /// doesn't change what Razorpay actually charges (that's just `price`).
+  discountPercent    Int                    @default(0)
+  /// Created lazily — null until an admin actually saves this interval with
+  /// pricing (see features/subscription/actions.ts).
+  razorpayPlanId     String?
+  createdAt          DateTime               @default(now())
+  subscriptionPlan   SubscriptionPlan       @relation(fields: [subscriptionPlanId], references: [id], onDelete: Cascade)
+  subscriptions      CustomerSubscription[]
+
+  @@unique([subscriptionPlanId, interval])
+}
+
+/// A customer's actual subscription. `status` mirrors Razorpay's own
+/// subscription lifecycle exactly — see the webhook handler. Delivery
+/// address is snapshotted (not a live Address FK) — same reasoning as
+/// Order's own delivery fields: a later address edit/deletion shouldn't
+/// silently change where an active subscription ships.
+model CustomerSubscription {
+  id                         String                   @id @default(cuid())
+  userId                     String
+  subscriptionPlanId         String
+  subscriptionPlanIntervalId String
+  razorpaySubscriptionId     String                   @unique
+  status                     SubscriptionStatus       @default(CREATED)
+  recipientName              String
+  recipientPhone             String
+  deliveryLine1              String
+  deliveryLine2              String?
+  deliveryCity               String
+  deliveryState              String
+  deliveryPincode            String
+  /// End of the current billing cycle — set/refreshed from the
+  /// subscription.charged webhook payload's current_end.
+  currentPeriodEnd           DateTime?
+  cancelledAt                DateTime?
+  createdAt                  DateTime                 @default(now())
+  updatedAt                  DateTime                 @updatedAt
+  user                       User                     @relation(fields: [userId], references: [id])
+  plan                       SubscriptionPlan         @relation(fields: [subscriptionPlanId], references: [id])
+  planInterval               SubscriptionPlanInterval @relation(fields: [subscriptionPlanIntervalId], references: [id])
+  orders                     Order[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum ReminderOccasion {
+  BIRTHDAY
+  ANNIVERSARY
+  OTHER
+}
+
+/// Customer-saved dates ("My Reminders" on the account page) — a
+/// low-effort, high-value nudge (per the competitive pass against FNP,
+/// which has this) to order for birthdays/anniversaries they'd otherwise
+/// forget. Recurs every year, so only month+day are meaningful — no year
+/// stored. The actual "send the email N days before" trigger is an
+/// external cron job hitting /api/cron/send-reminders (see that route's
+/// own doc comment) — this table just holds what to check.
+model Reminder {
+  id            String           @id @default(cuid())
+  userId        String
+  occasion      ReminderOccasion
+  recipientName String
+  /// 1-12.
+  month         Int
+  /// 1-31 — never validated against the specific month's real length
+  /// (Feb 30 would just never fire), a deliberate simplicity trade-off
+  /// over pulling in date-range validation for a low-stakes reminder field.
+  day           Int
+  note          String?
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([month, day])
 }
 
 // Audit trail for order status changes — who changed what, when. changedBy*
@@ -390,15 +633,60 @@ model OrderItem {
 model Review {
   id         String   @id @default(cuid())
   productId  String
+  /// Not a hard FK (survives a deleted account, same "snapshot, not
+  /// reference" pattern as OrderStatusHistory.changedByUserId) — but real
+  /// customer submissions always set this, enforcing one review per user
+  /// per product via the unique index below. Null only for legacy/seeded
+  /// rows that predate the review-submission flow.
   userId     String?
   authorName String
   rating     Int
   comment    String   @db.Text
+  /// Customer submissions (features/review/actions.ts's submitReviewAction)
+  /// always create with this explicitly false, regardless of the default
+  /// here — every real review enters the /admin/reviews moderation queue
+  /// first. The `true` default only benefits admin-created/seeded rows.
   isApproved Boolean  @default(true)
   createdAt  DateTime @default(now())
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+  @@unique([productId, userId])
   @@index([productId])
+}
+
+/// Curated homepage marketing quotes ("What Customers Are Saying") —
+/// distinct from Review above: this is admin-written/curated general
+/// social proof, not a specific customer's rating of one product. Admin
+/// managed at /admin/testimonials (testimonials:manage).
+model Testimonial {
+  id         String   @id @default(cuid())
+  authorName String
+  quote      String   @db.Text
+  rating     Int      @default(5)
+  photoUrl   String?
+  isActive   Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([isActive, sortOrder])
+}
+
+/// Admin-managed FAQ content — powers both the homepage accordion and the
+/// standalone /faq page (features/faq/queries.ts), replacing what used to
+/// be two separately hardcoded arrays that had already drifted apart.
+model FaqItem {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String   @db.Text
+  /// Optional grouping (e.g. "Ordering" | "Delivery" | "Payment") — the
+  /// standalone /faq page groups by this; the homepage accordion ignores
+  /// it and just shows every active item flat.
+  category  String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([isActive, sortOrder])
 }
 
 // ---------------------------------------------------------------------------
@@ -443,6 +731,10 @@ model GiftCard {
   id                String                @id @default(cuid())
   code              String                @unique
   amount            Int
+  /// Unredeemed value still claimable — set to 0 once redeemedAt is set,
+  /// since the value has fully moved into the redeemer's User.walletBalance
+  /// at that point (redemption is all-or-nothing, not partial/spendable
+  /// per-card at checkout — see gift-card.repository.ts's redeemGiftCard).
   balance           Int
   purchaserId       String
   recipientType     GiftCardRecipientType @default(SELF)
@@ -454,12 +746,20 @@ model GiftCard {
   paymentStatus     PaymentStatus         @default(PENDING)
   razorpayOrderId   String?
   razorpayPaymentId String?
+  /// Null until claimed. A SELF-purchase or admin-issued card auto-redeems
+  /// to its own purchaser the moment it's paid/issued (no separate claim
+  /// step); an OTHER (gifted) card stays unredeemed until the recipient
+  /// enters the code themselves — see redeemGiftCardAction.
+  redeemedAt        DateTime?
+  redeemedByUserId  String?
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
   purchaser         User                  @relation(fields: [purchaserId], references: [id])
+  redeemedBy        User?                 @relation("GiftCardRedemptions", fields: [redeemedByUserId], references: [id])
   adjustments       GiftCardAdjustment[]
 
   @@index([purchaserId])
+  @@index([redeemedByUserId])
 }
 
 /// Audit trail for manual balance changes (Super Admin only — real money).
@@ -491,13 +791,26 @@ model StoreSettings {
   baseDeliveryCharge    Int    @default(49)
   freeDeliveryThreshold Int    @default(999)
   /// IST 24h hour after which same-day Midnight-slot booking closes and
-  /// Express/Instant starts carrying Midnight pricing instead.
+  /// Express/Instant starts carrying Midnight pricing instead. The actual ₹
+  /// surcharges for Express/Midnight live on their own DeliverySlot rows
+  /// (single source of truth for both what's charged and what's advertised
+  /// on the marketing pages) — deliberately NOT duplicated here anymore.
+  /// See lib/delivery.ts's effectiveSlotCharge and
+  /// delivery-slot.repository.ts's findActiveDeliverySlotByType.
   midnightCutoffHour    Int    @default(20)
-  /// ₹ — shown on the Same Day Delivery marketing page.
-  expressCharge         Int    @default(99)
-  /// ₹ — the Midnight slot's own surcharge, and what Express carries once
-  /// booked same-day past midnightCutoffHour.
-  midnightCharge        Int    @default(199)
+
+  // --- Delivery serviceability — checked at checkout (see lib/geo.ts's
+  // haversineDistanceKm) against each address's Google-geocoded lat/lng.
+  // Both store coordinates are null until an admin sets them from
+  // /admin/settings (via the same Google Places picker used for customer
+  // addresses); the check is skipped entirely while either is null rather
+  // than blocking every order, matching the GST-block-omitted-until-set
+  // convention already used below for gstin. ---
+  storeLatitude    Float?
+  storeLongitude   Float?
+  /// km, straight-line (haversine) — not driving distance. 10 is a
+  /// reasonable starting radius for a single-city florist; admin-editable.
+  deliveryRadiusKm Int    @default(10)
 
   // --- Tax (GST) — used for invoice generation and reporting. Prices
   // throughout the storefront are tax-INCLUSIVE (standard for Indian D2C
@@ -547,7 +860,7 @@ model StoreSettings {
 /// recent rows).
 model AuditLog {
   id              String   @id @default(cuid())
-  /// "Product" | "Category" | "Coupon" | "DeliverySlot" | "BlogPost" | "StoreSettings" | "Banner" | "Holiday" | "Customer" | "CartSnapshot" | "EmailCampaign" | "GalleryItem"
+  /// "Product" | "Category" | "Coupon" | "DeliverySlot" | "BlogPost" | "StoreSettings" | "Banner" | "Holiday" | "Customer" | "CartSnapshot" | "EmailCampaign" | "GalleryItem" | "Testimonial" | "FaqItem" | "SubscriptionPlan"
   entityType      String
   entityId        String
   entityLabel     String

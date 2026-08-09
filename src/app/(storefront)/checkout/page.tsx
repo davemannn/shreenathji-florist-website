@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/server/auth/config";
 import { listAddressesForUser } from "@/server/repositories/address.repository";
 import { listActiveDeliverySlots } from "@/server/repositories/delivery-slot.repository";
+import { findUserById } from "@/server/repositories/user.repository";
 import { getStoreSettings } from "@/features/settings/queries";
 import { getUpcomingHolidayInfos } from "@/features/holiday/queries";
 import { CheckoutForm } from "@/features/checkout/components/checkout-form";
@@ -18,11 +19,12 @@ export default async function CheckoutPage() {
     redirect("/sign-in?redirectTo=/checkout");
   }
 
-  const [addressRows, slotRows, storeSettings, holidays] = await Promise.all([
+  const [addressRows, slotRows, storeSettings, holidays, user] = await Promise.all([
     listAddressesForUser(session.user.id),
     listActiveDeliverySlots(),
     getStoreSettings(),
     getUpcomingHolidayInfos(),
+    findUserById(session.user.id),
   ]);
 
   const addresses = addressRows.map((address) => ({
@@ -35,6 +37,8 @@ export default async function CheckoutPage() {
     city: address.city,
     state: address.state,
     pincode: address.pincode,
+    latitude: address.latitude ?? undefined,
+    longitude: address.longitude ?? undefined,
     isDefault: address.isDefault,
   }));
 
@@ -53,6 +57,7 @@ export default async function CheckoutPage() {
         deliverySlots={deliverySlots}
         storeSettings={storeSettings}
         holidays={holidays}
+        walletBalance={user?.walletBalance ?? 0}
       />
     </div>
   );

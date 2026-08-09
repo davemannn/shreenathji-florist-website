@@ -27,7 +27,9 @@ interface OrderConfirmationEmailProps {
   deliverySlotLabel?: string;
   deliveryAddress: string;
   total: number;
-  paymentMethod: "COD" | "RAZORPAY";
+  paymentMethod: "COD" | "RAZORPAY" | "WALLET";
+  /** ₹ of `total` paid from wallet balance — 0 if none used. */
+  walletAmountUsed?: number;
   invoiceUrl: string;
   storeAddressLine?: string;
   storeCity?: string;
@@ -50,11 +52,19 @@ export function OrderConfirmationEmail({
   deliveryAddress,
   total,
   paymentMethod,
+  walletAmountUsed = 0,
   invoiceUrl,
   storeAddressLine,
   storeCity,
   storePincode,
 }: OrderConfirmationEmailProps) {
+  const paymentLabel =
+    paymentMethod === "WALLET"
+      ? "Paid from wallet"
+      : `${paymentMethod === "COD" ? "Cash on Delivery" : "Paid online"}${
+          walletAmountUsed > 0 ? ` · ${formatINR(walletAmountUsed)} from wallet` : ""
+        }`;
+
   return (
     <Html>
       <Head />
@@ -89,8 +99,7 @@ export function OrderConfirmationEmail({
           </Section>
 
           <Text style={{ margin: "4px 0", fontSize: "14px", fontWeight: "bold" }}>
-            Total: {formatINR(total)} (
-            {paymentMethod === "COD" ? "Cash on Delivery" : "Paid online"})
+            Total: {formatINR(total)} ({paymentLabel})
           </Text>
 
           <Section

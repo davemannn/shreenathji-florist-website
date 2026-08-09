@@ -16,12 +16,13 @@ export interface UpdateStoreSettingsInput {
   baseDeliveryCharge: number;
   freeDeliveryThreshold: number;
   midnightCutoffHour: number;
-  expressCharge: number;
-  midnightCharge: number;
   // `| null` (not just optional) — Prisma's update input treats `undefined`
   // as "leave unchanged" but `null` as "clear it"; these fields need to be
   // clearable (e.g. removing a GSTIN), so callers must pass null explicitly
   // rather than omitting the key.
+  storeLatitude?: number | null;
+  storeLongitude?: number | null;
+  deliveryRadiusKm: number;
   gstin?: string | null;
   legalBusinessName?: string | null;
   registeredAddressLine?: string | null;

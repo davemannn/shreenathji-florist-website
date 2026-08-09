@@ -13,9 +13,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q")?.trim();
     const page = Number(searchParams.get("page")) || 1;
+    // Clamped, optional — lets the header's live-search suggestions ask for
+    // a handful of results (e.g. 5) instead of a full page of 12+, without
+    // opening this up to an unbounded page size.
+    const rawPageSize = Number(searchParams.get("pageSize"));
+    const pageSize = rawPageSize > 0 && rawPageSize <= 24 ? Math.floor(rawPageSize) : undefined;
 
     if (q) {
-      const result = await searchShopProducts({ query: q, page });
+      const result = await searchShopProducts({ query: q, page, pageSize });
       return apiSuccess(result);
     }
 

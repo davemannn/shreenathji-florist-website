@@ -19,6 +19,10 @@ import {
   Send,
   MessageSquare,
   GalleryHorizontal,
+  Quote,
+  HelpCircle,
+  Repeat,
+  BellRing,
 } from "lucide-react";
 import type { Capability } from "@/server/auth/permissions";
 
@@ -28,6 +32,28 @@ export interface AdminNavItem {
   icon: LucideIcon;
   /** undefined = visible to any signed-in staff role. */
   capability?: Capability;
+}
+
+/**
+ * Applies one admin's personal drag-reorder preference (User.adminNavOrder
+ * — see features/dashboard/actions.ts) on top of a capability-filtered
+ * item list. Items named in `order` come first, in that sequence; anything
+ * not in `order` (never customized yet, or added to adminNav since the
+ * preference was last saved) keeps its normal config position, appended
+ * after. `order` itself is never trusted beyond "which hrefs go first" —
+ * an unknown/stale href in it is simply ignored.
+ */
+export function sortByPersonalOrder(items: AdminNavItem[], order?: string[]): AdminNavItem[] {
+  if (!order || order.length === 0) return items;
+  const rank = new Map(order.map((href, index) => [href, index]));
+  return [...items].sort((a, b) => {
+    const rankA = rank.get(a.href);
+    const rankB = rank.get(b.href);
+    if (rankA != null && rankB != null) return rankA - rankB;
+    if (rankA != null) return -1;
+    if (rankB != null) return 1;
+    return 0; // neither customized — keep their relative config order (stable sort)
+  });
 }
 
 /** Single source of truth for admin nav — filtered per-role by `can()` in the shell, not hardcoded per role here. */
@@ -57,14 +83,27 @@ export const adminNav: AdminNavItem[] = [
     icon: GalleryHorizontal,
     capability: "gallery:manage",
   },
-  { label: "Gift Cards", href: "/admin/gift-cards", icon: Gift, capability: "gift_cards:view" },
   {
-    label: "Delivery Slots",
-    href: "/admin/delivery-slots",
-    icon: Truck,
-    capability: "delivery_slots:manage",
+    label: "Testimonials",
+    href: "/admin/testimonials",
+    icon: Quote,
+    capability: "testimonials:manage",
   },
+  { label: "FAQs", href: "/admin/faqs", icon: HelpCircle, capability: "faq:manage" },
+  {
+    label: "Subscriptions",
+    href: "/admin/subscriptions",
+    icon: Repeat,
+    capability: "subscriptions:manage",
+  },
+  { label: "Gift Cards", href: "/admin/gift-cards", icon: Gift, capability: "gift_cards:view" },
   { label: "Customers", href: "/admin/customers", icon: Users, capability: "customers:view" },
+  {
+    label: "Reminders",
+    href: "/admin/reminders",
+    icon: BellRing,
+    capability: "customers:view",
+  },
   {
     label: "Contact Messages",
     href: "/admin/contact-messages",
@@ -86,5 +125,14 @@ export const adminNav: AdminNavItem[] = [
   { label: "Reports", href: "/admin/reports", icon: FileBarChart, capability: "reports:view" },
   { label: "Audit Log", href: "/admin/audit-log", icon: History, capability: "reports:view" },
   { label: "Team", href: "/admin/team", icon: UserCog, capability: "team:manage:junior" },
+  // Delivery Slots sits immediately before Settings — both configure
+  // delivery pricing (per-slot surcharges vs. base charge/threshold/cutoff)
+  // and are meant to be found together, not scattered across the sidebar.
+  {
+    label: "Delivery Slots",
+    href: "/admin/delivery-slots",
+    icon: Truck,
+    capability: "delivery_slots:manage",
+  },
   { label: "Settings", href: "/admin/settings", icon: Settings, capability: "settings:view" },
 ];

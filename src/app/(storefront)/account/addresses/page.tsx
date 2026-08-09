@@ -27,6 +27,8 @@ export default async function AccountAddressesPage() {
     city: address.city,
     state: address.state,
     pincode: address.pincode,
+    latitude: address.latitude ?? undefined,
+    longitude: address.longitude ?? undefined,
     isDefault: address.isDefault,
   }));
 

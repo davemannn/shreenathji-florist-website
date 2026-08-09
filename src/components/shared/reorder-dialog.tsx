@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ComponentType, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ArrowUpDown, ChevronDown, ChevronUp, GripVertical } from "lucide-react";
@@ -24,6 +24,10 @@ interface ReorderDialogProps<T> {
   onSave: (orderedIds: string[]) => Promise<void>;
   title: string;
   description: string;
+  /** Defaults below match every existing call site (admin list-page toolbars) — only the sidebar's own reorder trigger overrides these. */
+  triggerLabel?: string;
+  triggerIcon?: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  triggerClassName?: string;
 }
 
 /**
@@ -41,6 +45,9 @@ export function ReorderDialog<T>({
   onSave,
   title,
   description,
+  triggerLabel = "Reorder",
+  triggerIcon: TriggerIcon = ArrowUpDown,
+  triggerClassName,
 }: ReorderDialogProps<T>) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -78,9 +85,9 @@ export function ReorderDialog<T>({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={<Button variant="outline" size="sm" />}>
-        <ArrowUpDown className="size-3.5" aria-hidden="true" />
-        Reorder
+      <DialogTrigger render={<Button variant="outline" size="sm" className={triggerClassName} />}>
+        <TriggerIcon className="size-3.5" aria-hidden={true} />
+        {triggerLabel}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

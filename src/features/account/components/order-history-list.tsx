@@ -58,12 +58,21 @@ export function OrderHistoryList({
           </ul>
           <div className="mt-3 flex items-center justify-between border-t pt-3 text-sm">
             <span className="text-muted-foreground">
-              {order.paymentMethod === "COD" ? "Cash on Delivery" : "Paid Online"} ·{" "}
+              {order.paymentMethod === "COD"
+                ? order.walletAmountUsed > 0
+                  ? `Cash on Delivery (${formatINR(order.walletAmountUsed)} from wallet)`
+                  : "Cash on Delivery"
+                : order.paymentMethod === "WALLET"
+                  ? "Paid from Wallet"
+                  : "Paid Online"}{" "}
+              ·{" "}
               {order.paymentStatus === "PAID"
                 ? "Paid"
                 : order.paymentStatus === "REFUNDED"
                   ? "Refunded"
-                  : "Payment pending"}
+                  : order.paymentStatus === "PARTIALLY_REFUNDED"
+                    ? "Partially refunded"
+                    : "Payment pending"}
             </span>
             <span className="font-semibold">{formatINR(order.total)}</span>
           </div>

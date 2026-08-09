@@ -4,6 +4,7 @@ import { Zap, Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
 import { getStoreSettings } from "@/features/settings/queries";
+import { findActiveDeliverySlotByType } from "@/server/repositories/delivery-slot.repository";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
@@ -13,7 +14,9 @@ export const metadata: Metadata = {
 };
 
 export default async function SameDayDeliveryPage() {
-  const { expressCharge, midnightCutoffHour } = await getStoreSettings();
+  const [{ midnightCutoffHour, baseDeliveryCharge, freeDeliveryThreshold }, expressSlot] =
+    await Promise.all([getStoreSettings(), findActiveDeliverySlotByType("FIXED")]);
+  const expressCharge = expressSlot?.extraCharge ?? 0;
   const cutoff12h =
     midnightCutoffHour > 12 ? `${midnightCutoffHour - 12} PM` : `${midnightCutoffHour} AM`;
 
@@ -41,11 +44,12 @@ export default async function SameDayDeliveryPage() {
         </div>
         <div className="border-border rounded-xs border p-5 text-center">
           <Zap className="text-brand mx-auto size-6" aria-hidden="true" />
-          <p className="mt-3 font-medium">{formatINR(expressCharge)} Flat Fee</p>
+          <p className="mt-3 font-medium">+{formatINR(expressCharge)} Express Surcharge</p>
           <p className="text-muted-foreground mt-1 text-sm">
-            One flat charge — no surprises at checkout. (Ordering after {cutoff12h}? It&apos;s
-            priced the same as Midnight Delivery, since that&apos;s realistically when it&apos;ll
-            arrive.)
+            On top of the standard {formatINR(baseDeliveryCharge)} delivery charge (free above{" "}
+            {formatINR(freeDeliveryThreshold)}) — no surprises at checkout. (Ordering after{" "}
+            {cutoff12h}? It&apos;s priced the same as Midnight Delivery, since that&apos;s
+            realistically when it&apos;ll arrive.)
           </p>
         </div>
         <div className="border-border rounded-xs border p-5 text-center">

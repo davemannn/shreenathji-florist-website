@@ -62,6 +62,21 @@ export default async function AdminGiftCardDetailPage({
           <dt className="text-muted-foreground text-xs">Recipient email</dt>
           <dd>{card.recipientEmail ?? "—"}</dd>
         </div>
+        <div className="col-span-2">
+          <dt className="text-muted-foreground text-xs">Redemption</dt>
+          <dd>
+            {card.redeemedAt ? (
+              <>
+                Redeemed by {card.redeemedByName} ({card.redeemedByEmail}) on{" "}
+                {formatDateTime(card.redeemedAt)} — value moved into their wallet balance.
+              </>
+            ) : card.paymentStatus === "PAID" ? (
+              "Not yet claimed — the recipient hasn't entered the code to move it into a wallet."
+            ) : (
+              "—"
+            )}
+          </dd>
+        </div>
         {card.message ? (
           <div className="col-span-2">
             <dt className="text-muted-foreground text-xs">Message</dt>
@@ -70,7 +85,7 @@ export default async function AdminGiftCardDetailPage({
         ) : null}
       </dl>
 
-      {canIssue ? (
+      {canIssue && !card.redeemedAt ? (
         <div>
           <AdjustBalanceDialog giftCardId={card.id} currentBalance={card.balance} />
         </div>
