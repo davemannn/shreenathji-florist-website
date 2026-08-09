@@ -1,15 +1,9 @@
 /**
  * The actual Node.js-only boot logic for instrumentation.ts, split into its
- * own file and reached only via a runtime-gated `require()` (not a
- * top-level `import`) — see that file's own doc comment for why both
- * things in here need to run at boot. Keeping the `node:child_process` /
- * `node:path` references out of instrumentation.ts itself avoids Next's
- * bundler flagging them as Edge-runtime-incompatible; this file is never
- * pulled into the Edge bundle at all, since the `require()` only executes
- * (and is only even reached) when NEXT_RUNTIME is "nodejs".
+ * own file and reached only via a runtime-gated dynamic import — see that
+ * file's own doc comment for why both things in here need to run at boot.
  */
-import { execFileSync } from "node:child_process";
-import path from "node:path";
+export {}; // no static imports of our own — this marks the file as a module so top-level await is allowed
 
 const g = globalThis as unknown as {
   __migrationsApplied?: boolean;
@@ -19,8 +13,8 @@ const g = globalThis as unknown as {
 if (process.env.NODE_ENV === "production" && !g.__migrationsApplied) {
   g.__migrationsApplied = true;
   try {
-    const prismaBin = path.join(process.cwd(), "node_modules", ".bin", "prisma");
-    execFileSync(prismaBin, ["migrate", "deploy"], { stdio: "inherit" });
+    const { runPendingMigrations } = await import("@/server/db/migrate");
+    await runPendingMigrations();
   } catch (error) {
     // Logged loudly but non-fatal: crashing the whole server here would
     // take down a site that might otherwise be serving fine (e.g. this
@@ -29,7 +23,7 @@ if (process.env.NODE_ENV === "production" && !g.__migrationsApplied) {
     // schema will fail with its own clear error either way — this is
     // just the one place with enough context to say "migrations" up
     // front instead of a confusing downstream Prisma error.
-    console.error("[migrate] prisma migrate deploy failed at boot:", error);
+    console.error("[migrate] failed at boot:", error);
   }
 }
 
