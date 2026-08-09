@@ -6,6 +6,11 @@ import { formatINR } from "@/lib/format";
 import { getStoreSettings } from "@/features/settings/queries";
 import { findActiveDeliverySlotByType } from "@/server/repositories/delivery-slot.repository";
 
+// Reads live delivery-slot pricing from the DB — see cart/page.tsx's
+// identical comment for why this needs to be dynamic rather than
+// prerendered at build time.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Midnight Delivery",
   description:

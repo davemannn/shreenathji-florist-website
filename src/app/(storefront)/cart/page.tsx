@@ -2,6 +2,15 @@ import type { Metadata } from "next";
 import { CartView } from "@/features/cart/components/cart-view";
 import { getStoreSettings } from "@/features/settings/queries";
 
+// getStoreSettings() reads the live DB. Without this, Next has no
+// per-request signal on this route and would prerender it once at build
+// time — baking in delivery-charge settings that can change from
+// /admin/settings, and (the actual failure this fixes) requiring the build
+// container to reach the production DB, which it can't — see the
+// homepage's identical fix (page.tsx in this same route group) for the
+// original diagnosis.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Your Cart",
 };

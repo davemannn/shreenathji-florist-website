@@ -7,6 +7,11 @@ import { getStoreSettings } from "@/features/settings/queries";
 import { findActiveDeliverySlotByType } from "@/server/repositories/delivery-slot.repository";
 import { siteConfig } from "@/config/site";
 
+// Reads live delivery-slot pricing from the DB — see cart/page.tsx's
+// identical comment for why this needs to be dynamic rather than
+// prerendered at build time.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Same Day Delivery",
   description:
