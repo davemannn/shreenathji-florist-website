@@ -11,25 +11,28 @@ export interface NavItem {
 export interface NavCategoryGroups {
   shop: NavItem[];
   occasions: NavItem[];
+  /** "Gifts For" — a third independent axis (isRecipient) alongside Shop/Occasions: "For Her", "For Him", "For Parents", etc. */
+  recipients: NavItem[];
 }
 
 /**
- * "Shop" and "Occasions" both route to the same /shop/[category] page —
- * both are just Category rows (an `isOccasion` flag distinguishes them),
- * not two parallel listing-page trees. Their children used to be a
- * hardcoded guess at what categories would exist; now they're built from
- * whatever the admin panel's category list actually has (see
- * getNavCategoryGroups in features/category/queries.ts), so creating a
- * category and ticking "Occasion" really does add it to the live nav.
- * A group with no rows yet renders as a plain link (no empty dropdown) —
+ * "Shop", "Occasions", and "Gifts For" all route to the same
+ * /shop/[category] page — all three are just Category rows (isOccasion/
+ * isRecipient flags distinguish them), not three parallel listing-page
+ * trees. Their children are built from whatever the admin panel's category
+ * list actually has (see getNavCategoryGroups in
+ * features/category/queries.ts), so creating a category and ticking
+ * "Occasion" or "Recipient" really does add it to the live nav. A group
+ * with no rows yet renders as a plain link (no empty dropdown) —
  * NavigationMenuTrigger/AccordionTrigger both already handle `children:
  * undefined` this way.
  */
-export function buildMainNav({ shop, occasions }: NavCategoryGroups): NavItem[] {
+export function buildMainNav({ shop, occasions, recipients }: NavCategoryGroups): NavItem[] {
   return [
     { label: "Home", href: "/" },
     { label: "Shop", href: "/shop", children: shop.length > 0 ? shop : undefined },
     { label: "Occasions", href: "/shop", children: occasions.length > 0 ? occasions : undefined },
+    { label: "Gifts For", href: "/shop", children: recipients.length > 0 ? recipients : undefined },
     { label: "Decoration Services", href: "/decoration-services" },
     { label: "Subscriptions", href: "/subscriptions" },
     { label: "Gallery", href: "/gallery" },
@@ -41,6 +44,7 @@ export function buildMainNav({ shop, occasions }: NavCategoryGroups): NavItem[] 
 // Small top utility bar above the main header row — mirrors the Florial
 // reference's "Find Store / phone / Gift Cards / FAQs / Contact" strip.
 export const utilityNav: NavItem[] = [
+  { label: "Track Order", href: "/track-order" },
   { label: "Gift Cards", href: "/gift-cards" },
   { label: "FAQs", href: "/faq" },
   { label: "Contact", href: "/contact" },
@@ -69,6 +73,7 @@ export const footerColumns: FooterColumn[] = [
   {
     title: "Help",
     links: [
+      { label: "Track Order", href: "/track-order" },
       { label: "Same Day Delivery", href: "/same-day-delivery" },
       { label: "Midnight Delivery", href: "/midnight-delivery" },
       { label: "FAQs", href: "/faq" },

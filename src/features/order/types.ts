@@ -4,6 +4,24 @@ export type OrderStatus =
 /** WALLET = the order's full total was covered by wallet balance — no cash due, no gateway payment. */
 export type OrderPaymentMethod = "COD" | "RAZORPAY" | "WALLET";
 
+/**
+ * /track-order (no-login guest tracking) — deliberately lean: no pricing,
+ * no full street address, no payment/customer-account details. Just enough
+ * to reassure someone who knows the order number + recipient phone that
+ * their delivery is on track.
+ */
+export interface TrackedOrder {
+  orderNumber: string;
+  status: OrderStatus;
+  createdAt: string;
+  deliveryDate: string;
+  deliverySlotLabel?: string;
+  deliveryCity: string;
+  recipientName: string;
+  items: { productTitle: string; variantLabel?: string; quantity: number }[];
+  statusHistory: OrderStatusHistoryEntry[];
+}
+
 export interface OrderListItem {
   id: string;
   orderNumber: string;

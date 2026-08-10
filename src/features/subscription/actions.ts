@@ -28,13 +28,17 @@ import {
 import {
   startSubscription,
   cancelSubscription as cancelSubscriptionService,
+  pauseSubscription as pauseSubscriptionService,
+  resumeSubscription as resumeSubscriptionService,
 } from "@/server/services/subscription.service";
 import {
   cancelSubscriptionSchema,
   subscribeFormSchema,
+  subscriptionIdSchema,
   subscriptionPlanFormSchema,
   type CancelSubscriptionValues,
   type SubscribeFormValues,
+  type SubscriptionIdValues,
   type SubscriptionPlanFormValues,
 } from "./validations";
 
@@ -112,6 +116,38 @@ export async function cancelSubscriptionAction(input: CancelSubscriptionValues) 
 
   await cancelSubscriptionService(subscription.razorpaySubscriptionId, values.cancelAtCycleEnd);
 
+  revalidatePath("/account/subscriptions");
+}
+
+export async function pauseSubscriptionAction(input: SubscriptionIdValues) {
+  const user = await requireSessionUser();
+  const values = subscriptionIdSchema.parse(input);
+
+  const subscription = await findCustomerSubscriptionById(values.subscriptionId, user.id);
+  if (!subscription) {
+    throw new Error("Subscription not found.");
+  }
+  if (subscription.status !== "ACTIVE") {
+    throw new Error("Only an active subscription can be paused.");
+  }
+
+  await pauseSubscriptionService(subscription.razorpaySubscriptionId);
+  revalidatePath("/account/subscriptions");
+}
+
+export async function resumeSubscriptionAction(input: SubscriptionIdValues) {
+  const user = await requireSessionUser();
+  const values = subscriptionIdSchema.parse(input);
+
+  const subscription = await findCustomerSubscriptionById(values.subscriptionId, user.id);
+  if (!subscription) {
+    throw new Error("Subscription not found.");
+  }
+  if (subscription.status !== "PAUSED") {
+    throw new Error("Only a paused subscription can be resumed.");
+  }
+
+  await resumeSubscriptionService(subscription.razorpaySubscriptionId);
   revalidatePath("/account/subscriptions");
 }
 

@@ -18,6 +18,7 @@ export interface AdminCategory {
   imageUrl?: string;
   imageCloudinaryId?: string;
   isOccasion: boolean;
+  isRecipient: boolean;
   isFeatured: boolean;
   isArchived: boolean;
   sortOrder: number;

@@ -7,6 +7,7 @@ const VARIANT: Record<SubscriptionStatus, "secondary" | "outline" | "destructive
   ACTIVE: "secondary",
   PENDING: "outline",
   HALTED: "destructive",
+  PAUSED: "outline",
   CANCELLED: "outline",
   COMPLETED: "secondary",
   EXPIRED: "outline",

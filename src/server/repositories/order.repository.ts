@@ -112,6 +112,20 @@ export async function findOrderByNumber(orderNumber: string, userId: string) {
 }
 
 /**
+ * Guest order tracking (/track-order) — no session at all, so `recipientPhone`
+ * standing in for a password is the entire access check: whoever knows both
+ * the order number AND the phone number it was placed for can see status.
+ * Scoped by BOTH fields together (never orderNumber alone) so this can't be
+ * used to enumerate other people's orders.
+ */
+export async function findOrderByNumberAndPhone(orderNumber: string, recipientPhone: string) {
+  return prisma.order.findFirst({
+    where: { orderNumber, recipientPhone },
+    include: { items: true, deliverySlot: true, statusHistory: { orderBy: { createdAt: "asc" } } },
+  });
+}
+
+/**
  * Unscoped by userId — the invoice route authorizes separately (order
  * owner OR staff with orders:view:all), unlike every other customer-facing
  * lookup which scopes by userId as its only access check.

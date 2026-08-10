@@ -68,6 +68,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       isActive: product?.isActive ?? true,
       isBestSeller: product?.isBestSeller ?? false,
       isFeatured: product?.isFeatured ?? false,
+      comboIncludes: product?.comboIncludes ?? "",
       categoryIds: product?.categoryIds ?? [],
       variants: product?.variants ?? [{ label: "", price: 0, stock: 0, isDefault: true }],
       images: product?.images ?? [],
@@ -154,6 +155,25 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                   className="border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 w-full rounded-lg border bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:ring-3"
                 />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="comboIncludes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Combo includes (optional)</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="12 Red Roses + 500g Chocolate Truffle Cake" />
+              </FormControl>
+              <FormDescription>
+                For a combo/hamper product — shown as a &ldquo;What&rsquo;s Included&rdquo; callout
+                on the product page. Leave blank for an ordinary product. Pair with a
+                &ldquo;Combos&rdquo; category so it shows up as its own shop section.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

@@ -193,6 +193,7 @@ export interface UpsertProductInput {
   isActive: boolean;
   isBestSeller: boolean;
   isFeatured: boolean;
+  comboIncludes?: string | null;
   categoryIds: string[];
   variants: ProductVariantInput[];
   images: ProductImageInput[];

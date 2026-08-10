@@ -39,6 +39,7 @@ export function CategoryForm({ category }: { category?: AdminCategory }) {
       imageUrl: category?.imageUrl ?? "",
       imageCloudinaryId: category?.imageCloudinaryId ?? "",
       isOccasion: category?.isOccasion ?? false,
+      isRecipient: category?.isRecipient ?? false,
       isFeatured: category?.isFeatured ?? false,
       gstRate: category?.gstRate,
       hsnCode: category?.hsnCode ?? "",
@@ -47,6 +48,7 @@ export function CategoryForm({ category }: { category?: AdminCategory }) {
   const { setValue } = form;
   const imageUrl = useWatch({ control: form.control, name: "imageUrl" });
   const isOccasion = useWatch({ control: form.control, name: "isOccasion" });
+  const isRecipient = useWatch({ control: form.control, name: "isRecipient" });
 
   async function onSubmit(values: CategoryFormValues) {
     try {
@@ -155,6 +157,22 @@ export function CategoryForm({ category }: { category?: AdminCategory }) {
           />
           <FormField
             control={form.control}
+            name="isRecipient"
+            render={({ field }) => (
+              <FormItem>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                  Recipient
+                </label>
+                <FormDescription className="pl-6">
+                  Lists this category under the header&rsquo;s &ldquo;Gifts For&rdquo; menu (e.g.
+                  For Her, For Him, For Parents).
+                </FormDescription>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="isFeatured"
             render={({ field }) => (
               <FormItem>
@@ -170,7 +188,7 @@ export function CategoryForm({ category }: { category?: AdminCategory }) {
           />
         </div>
 
-        {!isOccasion ? (
+        {!isOccasion && !isRecipient ? (
           <div className="grid grid-cols-2 gap-4">
             <FormField
               control={form.control}

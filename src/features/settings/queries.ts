@@ -27,5 +27,6 @@ export const getStoreSettings = cache(async (): Promise<StoreSettings> => {
     invoicePrefix: row.invoicePrefix,
     codEnabled: row.codEnabled,
     razorpayEnabled: row.razorpayEnabled,
+    referralBonusAmount: row.referralBonusAmount,
   };
 });

@@ -45,6 +45,8 @@ export interface ProductDetail extends Product {
   variants: ProductVariant[];
   reviews: ProductReview[];
   categorySlugs: string[];
+  /** "What's included" for a combo/hamper product (e.g. "12 Red Roses + 500g Chocolate Truffle Cake") — shown as a callout on the PDP when set. */
+  comboIncludes?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,6 +97,8 @@ export interface AdminProductDetail {
   isActive: boolean;
   isBestSeller: boolean;
   isFeatured: boolean;
+  /** "What's included" for a combo/hamper product — see ProductDetail's own doc comment. */
+  comboIncludes?: string;
   categoryIds: string[];
   variants: AdminProductVariantInput[];
   images: AdminProductImageInput[];

@@ -23,6 +23,7 @@ export interface UpdateStoreSettingsInput {
   storeLatitude?: number | null;
   storeLongitude?: number | null;
   deliveryRadiusKm: number;
+  referralBonusAmount: number;
   gstin?: string | null;
   legalBusinessName?: string | null;
   registeredAddressLine?: string | null;

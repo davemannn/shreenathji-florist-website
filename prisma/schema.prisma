@@ -49,6 +49,19 @@ model User {
   /// order they're listed in for this one person. Harmless/unused for
   /// regular customers.
   adminNavOrder         Json?
+  /// Generated lazily (see referral.repository.ts's getOrCreateReferralCode)
+  /// the first time this user opens /account/referral, not at signup —
+  /// most users never need one. Shared as `/sign-up?ref=<code>`.
+  referralCode          String?                @unique
+  /// Set at most once, within a short freshness window right after this
+  /// user's own signup (see features/referral/actions.ts) — never
+  /// retroactively reassignable, closing off the obvious "claim someone
+  /// else's existing account as your referral" abuse path.
+  referredByUserId      String?
+  /// Flips true the first time referredBy's reward is actually granted
+  /// (this user's first CONFIRMED/PAID order) — guards against
+  /// double-crediting if that hook ever fires twice for the same order.
+  referralRewardGranted Boolean                @default(false)
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
   sessions              Session[]
@@ -68,6 +81,8 @@ model User {
   reminders             Reminder[]
   cartSnapshot          CartSnapshot?
   tags                  CustomerTag[]
+  referredBy            User?                  @relation("Referrals", fields: [referredByUserId], references: [id], onDelete: SetNull)
+  referrals             User[]                 @relation("Referrals")
 }
 
 model Session {
@@ -184,6 +199,12 @@ model Category {
   // on replace/remove instead of leaving orphaned assets.
   imageCloudinaryId String?
   isOccasion        Boolean           @default(false)
+  /// A second, independent nav axis alongside isOccasion — "For Her",
+  /// "For Him", "For Parents", etc. A category could in principle be both
+  /// (unusual but not prevented); the nav groups it into whichever
+  /// section(s) apply. See features/category/queries.ts's
+  /// getNavCategoryGroups.
+  isRecipient       Boolean           @default(false)
   isFeatured        Boolean           @default(false)
   /// Hides this category from the storefront (nav + shop pages) without
   /// deleting it — unlike hard delete, doesn't require reassigning its
@@ -213,6 +234,15 @@ model Product {
   isActive     Boolean           @default(true)
   isBestSeller Boolean           @default(false)
   isFeatured   Boolean           @default(false)
+  /// Free-text "what's included" line for a combo/hamper product (e.g. "12
+  /// Red Roses + 500g Chocolate Truffle Cake + Teddy Bear"), shown as a
+  /// callout on the product card/detail page when set. Deliberately not a
+  /// relational bundle-of-products model — a combo is still sold and
+  /// priced as one ordinary Product/Variant, this is purely the
+  /// customer-facing description of what's inside. Pair with a "Combos"
+  /// Category (an ordinary Category row, isOccasion/isRecipient both
+  /// false) for it to show up as its own shop section.
+  comboIncludes String?          @db.Text
   rating       Float             @default(0)
   reviewCount  Int               @default(0)
   createdAt    DateTime          @default(now())
@@ -474,6 +504,13 @@ enum SubscriptionStatus {
   ACTIVE
   PENDING
   HALTED
+  /// Customer-initiated (see "Pause"/"Resume" on /account/subscriptions) —
+  /// distinct from HALTED, which is Razorpay giving up after repeated
+  /// failed charge attempts. Razorpay's actual API supports this status
+  /// (confirmed against their docs), even though the installed `razorpay`
+  /// npm package's own TypeScript types omit it from the union — see
+  /// razorpay.ts's pauseRazorpaySubscription/resumeRazorpaySubscription.
+  PAUSED
   CANCELLED
   COMPLETED
   EXPIRED
@@ -847,6 +884,12 @@ model StoreSettings {
   // toggles availability. ---
   codEnabled      Boolean @default(true)
   razorpayEnabled Boolean @default(true)
+
+  // --- Refer-a-friend — ₹ credited to BOTH the referrer's and the new
+  // customer's wallet the moment the new customer's first order is
+  // confirmed/paid (see order.service.ts's placeOrder). 0 effectively
+  // turns the program off without touching any code. ---
+  referralBonusAmount Int @default(100)
 
   updatedAt DateTime @updatedAt
 }

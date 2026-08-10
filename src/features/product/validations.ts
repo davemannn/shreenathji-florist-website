@@ -28,6 +28,7 @@ export const productFormSchema = z
     isActive: z.boolean(),
     isBestSeller: z.boolean(),
     isFeatured: z.boolean(),
+    comboIncludes: z.string().max(300, "Keep it under 300 characters").optional(),
     categoryIds: z.array(z.string()).min(1, "Choose at least one category"),
     variants: z.array(variantSchema).min(1, "Add at least one variant"),
     images: z.array(imageSchema).min(1, "Add at least one image"),

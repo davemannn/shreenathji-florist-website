@@ -10,6 +10,7 @@ import {
   Text,
 } from "@react-email/components";
 import { formatINR, formatDate } from "@/lib/format";
+import { siteConfig } from "@/config/site";
 import { EmailFooter } from "./components/email-footer";
 
 interface OrderConfirmationEmailItem {
@@ -120,6 +121,17 @@ export function OrderConfirmationEmail({
           <Text style={{ margin: "16px 0 4px", fontSize: "13px" }}>
             <Link href={invoiceUrl} style={{ color: "#c9105f" }}>
               View your invoice
+            </Link>
+          </Text>
+          <Text style={{ margin: "4px 0 16px", fontSize: "13px" }}>
+            Questions about this order?{" "}
+            <Link
+              href={`${siteConfig.contact.whatsappHref}?text=${encodeURIComponent(
+                `Hi! I have a question about my order ${orderNumber}.`,
+              )}`}
+              style={{ color: "#25D366" }}
+            >
+              Chat with us on WhatsApp
             </Link>
           </Text>
 

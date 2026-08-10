@@ -52,6 +52,7 @@ export interface UpsertCategoryInput {
   imageUrl?: string;
   imageCloudinaryId?: string;
   isOccasion: boolean;
+  isRecipient: boolean;
   isFeatured: boolean;
   gstRate?: number | null;
   hsnCode?: string | null;

@@ -52,3 +52,8 @@ export const cancelSubscriptionSchema = z.object({
   cancelAtCycleEnd: z.boolean(),
 });
 export type CancelSubscriptionValues = z.infer<typeof cancelSubscriptionSchema>;
+
+export const subscriptionIdSchema = z.object({
+  subscriptionId: z.string().min(1),
+});
+export type SubscriptionIdValues = z.infer<typeof subscriptionIdSchema>;

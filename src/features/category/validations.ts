@@ -10,6 +10,7 @@ export const categoryFormSchema = z.object({
   imageUrl: z.string().optional(),
   imageCloudinaryId: z.string().optional(),
   isOccasion: z.boolean(),
+  isRecipient: z.boolean(),
   isFeatured: z.boolean(),
   gstRate: z.coerce.number().int().min(0).max(28).optional(),
   hsnCode: z.string().optional(),

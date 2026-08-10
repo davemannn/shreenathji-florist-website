@@ -128,6 +128,7 @@ export function CategoriesTable({ categories, sort, dir, search }: CategoriesTab
             <TableCell className="flex gap-1">
               {category.isArchived ? <Badge variant="outline">Archived</Badge> : null}
               {category.isOccasion ? <Badge variant="secondary">Occasion</Badge> : null}
+              {category.isRecipient ? <Badge variant="secondary">Recipient</Badge> : null}
               {category.isFeatured ? <Badge variant="secondary">Featured</Badge> : null}
             </TableCell>
             <TableCell className="text-right">

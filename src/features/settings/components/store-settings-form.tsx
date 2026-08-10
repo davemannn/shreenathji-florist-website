@@ -384,6 +384,35 @@ export function StoreSettingsForm({
           ) : null}
         </div>
 
+        <Separator className="my-2" />
+        <div>
+          <h2 className="text-sm font-semibold">Refer a Friend</h2>
+          <p className="text-muted-foreground text-xs">
+            ₹ credited to both the referrer&rsquo;s and the new customer&rsquo;s wallet the moment
+            the new customer&rsquo;s first order is confirmed.
+          </p>
+        </div>
+        <FormField
+          control={form.control}
+          name="referralBonusAmount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Referral bonus (₹)</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  {...field}
+                  value={field.value as number}
+                  disabled={readOnly}
+                  className="max-w-32"
+                />
+              </FormControl>
+              <FormDescription>Set to 0 to turn the program off.</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         {!readOnly ? (
           <Button
             type="submit"

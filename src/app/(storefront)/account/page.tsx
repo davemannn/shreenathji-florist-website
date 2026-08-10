@@ -68,6 +68,13 @@ export default async function AccountPage() {
           <p className="text-sm font-medium">Reminders</p>
           <p className="text-muted-foreground text-sm">Never miss a birthday or anniversary.</p>
         </Link>
+        <Link
+          href="/account/referral"
+          className="border-border hover:bg-muted rounded-xs border p-5 transition-colors"
+        >
+          <p className="text-sm font-medium">Refer a Friend</p>
+          <p className="text-muted-foreground text-sm">Give credit, get credit.</p>
+        </Link>
       </div>
 
       <div className="border-t pt-6">

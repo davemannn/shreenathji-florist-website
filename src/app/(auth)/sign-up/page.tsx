@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { SignUpForm } from "@/features/auth/components/sign-up-form";
 
 export const metadata: Metadata = {
@@ -16,7 +17,10 @@ export default function SignUpPage() {
           Fresh flowers, delivered across Vadodara
         </p>
       </div>
-      <SignUpForm googleEnabled={googleEnabled} />
+      {/* SignUpForm reads ?ref via useSearchParams, which requires a Suspense boundary. */}
+      <Suspense>
+        <SignUpForm googleEnabled={googleEnabled} />
+      </Suspense>
     </div>
   );
 }

@@ -65,6 +65,7 @@ function toProductDetail(product: ProductWithRelations): ProductDetail {
       createdAt: review.createdAt.toISOString(),
     })),
     categorySlugs: product.categories.map((pc) => pc.category.slug),
+    comboIncludes: product.comboIncludes ?? undefined,
   };
 }
 
@@ -151,6 +152,7 @@ function toAdminDetail(product: ProductAdminRow): AdminProductDetail {
     isActive: product.isActive,
     isBestSeller: product.isBestSeller,
     isFeatured: product.isFeatured,
+    comboIncludes: product.comboIncludes ?? undefined,
     categoryIds: product.categories.map((pc) => pc.categoryId),
     variants: product.variants.map((v) => ({
       label: v.label,

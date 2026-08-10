@@ -1,5 +1,6 @@
 import {
   findOrderByIdAdmin,
+  findOrderByNumberAndPhone,
   findOrderByNumberForInvoice,
   listOrdersAdmin as listOrdersAdminRepo,
   listOrdersForDeliveryPerson,
@@ -15,6 +16,7 @@ import type {
   OrderDetail,
   OrderListItem,
   RazorpayTxnDetails,
+  TrackedOrder,
 } from "./types";
 
 type OrderRow = Awaited<ReturnType<typeof listOrdersAdminRepo>>["orders"][number];
@@ -159,6 +161,42 @@ export async function getMyDeliveries(deliveryPersonId: string): Promise<Deliver
 export async function getActiveDeliveryPersons(): Promise<DeliveryPersonOption[]> {
   const rows = await listActiveDeliveryPersons();
   return rows.map((row) => ({ id: row.id, name: row.name, phone: row.phone ?? undefined }));
+}
+
+// ---------------------------------------------------------------------------
+// Guest order tracking — /track-order, no session.
+// ---------------------------------------------------------------------------
+
+export async function getOrderForTracking(
+  orderNumber: string,
+  recipientPhone: string,
+): Promise<TrackedOrder | null> {
+  const order = await findOrderByNumberAndPhone(orderNumber, recipientPhone);
+  if (!order) return null;
+
+  return {
+    orderNumber: order.orderNumber,
+    status: order.status,
+    createdAt: order.createdAt.toISOString(),
+    deliveryDate: order.deliveryDate.toISOString(),
+    deliverySlotLabel: order.deliverySlot?.label,
+    deliveryCity: order.deliveryCity,
+    recipientName: order.recipientName,
+    items: order.items.map((item) => ({
+      productTitle: item.productTitle,
+      variantLabel: item.variantLabel ?? undefined,
+      quantity: item.quantity,
+    })),
+    statusHistory: order.statusHistory.map((entry) => ({
+      id: entry.id,
+      fromStatus: entry.fromStatus ?? undefined,
+      toStatus: entry.toStatus,
+      changedByName: entry.changedByName,
+      changedByRole: entry.changedByRole,
+      note: entry.note ?? undefined,
+      createdAt: entry.createdAt.toISOString(),
+    })),
+  };
 }
 
 // ---------------------------------------------------------------------------

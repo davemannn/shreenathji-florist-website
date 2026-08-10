@@ -7,6 +7,7 @@ import { auth } from "@/server/auth/config";
 import { getMySubscriptions } from "@/features/subscription/queries";
 import { SubscriptionStatusBadge } from "@/features/subscription/components/subscription-status-badge";
 import { CancelSubscriptionButton } from "@/features/subscription/components/cancel-subscription-button";
+import { PauseResumeSubscriptionButton } from "@/features/subscription/components/pause-resume-subscription-button";
 import { Button } from "@/components/ui/button";
 import { formatINR } from "@/lib/format";
 
@@ -22,7 +23,7 @@ function formatDate(iso: string): string {
   });
 }
 
-const CANCELLABLE_STATUSES = ["ACTIVE", "AUTHENTICATED", "PENDING", "HALTED"];
+const CANCELLABLE_STATUSES = ["ACTIVE", "AUTHENTICATED", "PENDING", "HALTED", "PAUSED"];
 
 export default async function AccountSubscriptionsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -74,9 +75,12 @@ export default async function AccountSubscriptionsPage() {
               </p>
             ) : null}
           </div>
-          {CANCELLABLE_STATUSES.includes(sub.status) ? (
-            <CancelSubscriptionButton subscriptionId={sub.id} />
-          ) : null}
+          <div className="flex shrink-0 items-center gap-2">
+            <PauseResumeSubscriptionButton subscriptionId={sub.id} status={sub.status} />
+            {CANCELLABLE_STATUSES.includes(sub.status) ? (
+              <CancelSubscriptionButton subscriptionId={sub.id} />
+            ) : null}
+          </div>
         </div>
       ))}
     </div>

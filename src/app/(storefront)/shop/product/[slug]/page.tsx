@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Gift } from "lucide-react";
 import { getProductBySlug, getRelatedProducts } from "@/features/product/queries";
 import { ProductGallery } from "@/features/product/components/product-gallery";
 import { VariantSelectionProvider } from "@/features/product/components/variant-selection-context";
@@ -9,7 +10,9 @@ import { ProductReviewsSection } from "@/features/review/components/product-revi
 import { RelatedProducts } from "@/features/product/components/related-products";
 import { StarRating } from "@/components/shared/star-rating";
 import { Breadcrumb } from "@/components/shared/breadcrumb";
+import { WhatsAppChatLink } from "@/components/shared/whatsapp-chat-link";
 import { getStoreSettings } from "@/features/settings/queries";
+import { siteConfig } from "@/config/site";
 
 export async function generateMetadata({
   params,
@@ -53,8 +56,23 @@ export default async function ProductDetailPage({ params }: PageProps<"/shop/pro
               <StarRating rating={product.rating} reviewCount={product.reviewCount} />
               <h1 className="mt-2 text-3xl md:text-4xl">{product.title}</h1>
             </div>
+            {product.comboIncludes ? (
+              <div className="border-brand/30 bg-brand/5 flex items-start gap-2.5 rounded-xs border p-3">
+                <Gift className="text-brand mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-medium">What&rsquo;s Included</p>
+                  <p className="text-muted-foreground text-sm">{product.comboIncludes}</p>
+                </div>
+              </div>
+            ) : null}
             <AddToCartForm product={product} />
             <DeliveryEstimate midnightCutoffHour={midnightCutoffHour} />
+            <WhatsAppChatLink
+              message={`Hi! I have a question about "${product.title}" (${siteConfig.url}/shop/product/${slug}).`}
+              className="text-muted-foreground hover:text-foreground w-fit text-sm"
+            >
+              Ask about this on WhatsApp
+            </WhatsAppChatLink>
             <div>
               <h2 className="mb-2 text-sm font-semibold tracking-wide uppercase">Description</h2>
               <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>

@@ -14,15 +14,33 @@ import { OrderStatusEmail, type OrderStatusEmailStatus } from "@/emails/order-st
 import { OrderRefundEmail } from "@/emails/order-refund-email";
 import { getStoreSettings } from "@/features/settings/queries";
 import { siteConfig } from "@/config/site";
+import { getOrderForTracking } from "./queries";
 import { allowedNextStatuses } from "./status-transitions";
 import {
   assignDeliveryPersonSchema,
   processRefundSchema,
+  trackOrderSchema,
   updateOrderStatusSchema,
   type AssignDeliveryPersonValues,
   type ProcessRefundValues,
+  type TrackOrderValues,
   type UpdateOrderStatusValues,
 } from "./validations";
+
+/**
+ * Guest order tracking — no session check at all, deliberately (the whole
+ * point is not requiring an account). One generic error for "no match"
+ * rather than distinguishing "wrong order number" from "wrong phone" —
+ * doesn't hand an attacker a signal for enumerating real order numbers.
+ */
+export async function trackOrderAction(input: TrackOrderValues) {
+  const values = trackOrderSchema.parse(input);
+  const order = await getOrderForTracking(values.orderNumber, values.recipientPhone);
+  if (!order) {
+    throw new Error("We couldn't find an order matching that order number and phone number.");
+  }
+  return order;
+}
 
 const EMAILED_STATUSES: OrderStatusEmailStatus[] = ["OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"];
 

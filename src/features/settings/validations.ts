@@ -30,6 +30,7 @@ export const storeSettingsFormSchema = z
       .regex(/^[A-Za-z0-9]+$/, "Letters and numbers only"),
     codEnabled: z.boolean(),
     razorpayEnabled: z.boolean(),
+    referralBonusAmount: z.coerce.number().int().min(0),
   })
   .refine((data) => data.codEnabled || data.razorpayEnabled, {
     message: "At least one payment method must stay enabled",

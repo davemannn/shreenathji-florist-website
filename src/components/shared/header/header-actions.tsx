@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useCartItemCount } from "@/stores/cart-store";
 import { useWishlistCount } from "@/stores/wishlist-store";
 import { useSession } from "@/lib/auth-client";
+import { siteConfig } from "@/config/site";
+import { WhatsAppIcon } from "@/components/shared/whatsapp-icon";
 import { HeaderSearch } from "./header-search";
 
 function CountBadge({ count }: { count: number }) {
@@ -32,6 +34,17 @@ export function HeaderActions() {
 
   return (
     <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Chat with us on WhatsApp"
+        nativeButton={false}
+        render={
+          <a href={siteConfig.contact.whatsappHref} target="_blank" rel="noopener noreferrer" />
+        }
+      >
+        <WhatsAppIcon className="size-[18px] text-[#25D366]" />
+      </Button>
       <HeaderSearch />
       <Button
         variant="ghost"

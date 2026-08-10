@@ -15,6 +15,8 @@ import {
   createRazorpayPlan,
   createRazorpaySubscription,
   cancelRazorpaySubscription,
+  pauseRazorpaySubscription,
+  resumeRazorpaySubscription,
   fetchRazorpayPaymentDetails,
   type RazorpayBillingInterval,
 } from "@/server/payments/razorpay";
@@ -231,4 +233,24 @@ export async function cancelSubscription(
   await updateCustomerSubscriptionStatus(razorpaySubscriptionId, "CANCELLED", {
     cancelledAt: new Date(),
   });
+}
+
+/**
+ * "Skip a delivery" without cancelling outright — Razorpay only allows
+ * pausing a subscription that's currently ACTIVE (see razorpay.ts's
+ * pauseRazorpaySubscription), enforced both here optimistically and by
+ * Razorpay's own API rejecting the call otherwise. Stays paused until
+ * explicitly resumed — Razorpay's pause API doesn't support "skip exactly
+ * one cycle then auto-resume", so this is the pragmatic equivalent: pause
+ * now, resume whenever the customer's ready for billing to continue.
+ */
+export async function pauseSubscription(razorpaySubscriptionId: string) {
+  await pauseRazorpaySubscription(razorpaySubscriptionId);
+  await updateCustomerSubscriptionStatus(razorpaySubscriptionId, "PAUSED");
+}
+
+/** Resume is only valid from PAUSED — see pauseSubscription's own doc comment. */
+export async function resumeSubscription(razorpaySubscriptionId: string) {
+  await resumeRazorpaySubscription(razorpaySubscriptionId);
+  await updateCustomerSubscriptionStatus(razorpaySubscriptionId, "ACTIVE");
 }

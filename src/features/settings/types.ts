@@ -25,4 +25,6 @@ export interface StoreSettings {
   invoicePrefix: string;
   codEnabled: boolean;
   razorpayEnabled: boolean;
+  /** ₹ credited to both sides of a successful referral — see features/referral. 0 effectively turns the program off. */
+  referralBonusAmount: number;
 }

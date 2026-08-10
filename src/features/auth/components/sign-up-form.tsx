@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -9,11 +9,14 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { applyReferralCodeAction } from "@/features/referral/actions";
 import { signUpSchema, type SignUpValues } from "../validations";
 import { GoogleSignInButton } from "./google-sign-in-button";
 
 export function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const referralCode = searchParams.get("ref");
 
   const {
     register,
@@ -25,11 +28,22 @@ export function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
   });
 
   async function onSubmit(values: SignUpValues) {
-    const { error } = await authClient.signUp.email(values);
+    const { data, error } = await authClient.signUp.email(values);
     if (error) {
       toast.error(error.message ?? "Couldn't create your account. Try a different email.");
       return;
     }
+
+    // Best-effort, never blocks signup — an invalid/expired/missing code
+    // just silently doesn't attach a referrer (see applyReferralCodeAction).
+    if (referralCode && data?.user.id) {
+      try {
+        await applyReferralCodeAction(data.user.id, referralCode);
+      } catch {
+        // Not fatal to signup either way.
+      }
+    }
+
     // requireEmailVerification is on (see server/auth/config.ts) — sign-up
     // doesn't create a session yet, and better-auth has already fired the
     // first verification OTP. Go straight to entering it.

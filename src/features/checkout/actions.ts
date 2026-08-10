@@ -17,6 +17,7 @@ import {
   markOrderPaidByWallet,
 } from "@/server/repositories/order.repository";
 import { createAddress } from "@/server/repositories/address.repository";
+import { grantReferralRewardIfFirstOrder } from "@/server/repositories/user.repository";
 import { sendEmail, STORE_INBOX } from "@/server/email/mailer";
 import { OrderConfirmationEmail } from "@/emails/order-confirmation-email";
 import { AdminNewOrderAlertEmail } from "@/emails/admin-new-order-alert-email";
@@ -62,6 +63,7 @@ async function requireSessionUser(): Promise<{ id: string; email: string; name: 
 
 interface OrderConfirmationEmailOrder {
   id: string;
+  userId: string;
   orderNumber: string;
   total: number;
   walletAmountUsed: number;
@@ -148,6 +150,21 @@ async function sendOrderConfirmationEmail(
     });
   } catch {
     // Same as above — not fatal to the order.
+  }
+
+  // Refer-a-friend payout — this is the one choke point every order-
+  // confirmed path (COD accept, Razorpay verify, wallet-fully-covered) all
+  // pass through, so it only needs wiring here rather than at each of the
+  // three call sites. No-ops instantly unless this customer both has a
+  // referrer and this is genuinely their first order — see
+  // grantReferralRewardIfFirstOrder's own doc comment.
+  try {
+    const settings = await getStoreSettings();
+    await grantReferralRewardIfFirstOrder(order.userId, settings.referralBonusAmount);
+  } catch (error) {
+    // A missed referral credit is a support ticket, not a broken order —
+    // never let it affect whether the order itself is considered confirmed.
+    console.error(`Referral reward check failed for order ${order.orderNumber}:`, error);
   }
 }
 

@@ -7,6 +7,7 @@ export type SubscriptionStatus =
   | "ACTIVE"
   | "PENDING"
   | "HALTED"
+  | "PAUSED"
   | "CANCELLED"
   | "COMPLETED"
   | "EXPIRED";

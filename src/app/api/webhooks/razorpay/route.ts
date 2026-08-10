@@ -31,7 +31,7 @@ interface RazorpayWebhookPayload {
  * Configure in the Razorpay Dashboard: Webhooks > add
  * https://<domain>/api/webhooks/razorpay, subscribed to at least
  * subscription.activated / .charged / .cancelled / .completed / .halted /
- * .pending, secret set as RAZORPAY_WEBHOOK_SECRET.
+ * .pending / .paused / .resumed, secret set as RAZORPAY_WEBHOOK_SECRET.
  *
  * Returns non-2xx on anything that should be retried (Razorpay retries
  * failed webhook deliveries automatically) — a transient DB hiccup or a
@@ -113,6 +113,20 @@ async function handleEvent(payload: RazorpayWebhookPayload) {
       // Repeated charge failures — Razorpay has given up retrying.
       // Customer needs to update their payment method to resume.
       await updateCustomerSubscriptionStatus(sub.id, "HALTED");
+      return;
+    }
+    case "subscription.paused": {
+      if (!sub) return;
+      // Customer-initiated via /account/subscriptions — this just confirms
+      // what pauseSubscription (subscription.service.ts) already reflected
+      // optimistically. Also covers the (currently unused, but possible)
+      // case of a pause initiated directly from the Razorpay dashboard.
+      await updateCustomerSubscriptionStatus(sub.id, "PAUSED");
+      return;
+    }
+    case "subscription.resumed": {
+      if (!sub) return;
+      await updateCustomerSubscriptionStatus(sub.id, "ACTIVE");
       return;
     }
     case "subscription.cancelled": {

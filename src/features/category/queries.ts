@@ -32,7 +32,7 @@ export async function listAllCategories(): Promise<Category[]> {
   return categories.map(toCategory);
 }
 
-/** Feeds the header's "Shop"/"Occasions" dropdown children — see buildMainNav. */
+/** Feeds the header's "Shop"/"Occasions"/"Gifts For" dropdown children — see buildMainNav. */
 export async function getNavCategoryGroups(): Promise<NavCategoryGroups> {
   const categories = await listCategoriesRepo();
   const toNavItem = (category: CategoryRow) => ({
@@ -40,8 +40,9 @@ export async function getNavCategoryGroups(): Promise<NavCategoryGroups> {
     href: `/shop/${category.slug}`,
   });
   return {
-    shop: categories.filter((c) => !c.isOccasion).map(toNavItem),
+    shop: categories.filter((c) => !c.isOccasion && !c.isRecipient).map(toNavItem),
     occasions: categories.filter((c) => c.isOccasion).map(toNavItem),
+    recipients: categories.filter((c) => c.isRecipient).map(toNavItem),
   };
 }
 
@@ -90,6 +91,7 @@ export async function listCategoriesAdmin(
     imageUrl: category.imageUrl ?? undefined,
     imageCloudinaryId: category.imageCloudinaryId ?? undefined,
     isOccasion: category.isOccasion,
+    isRecipient: category.isRecipient,
     isFeatured: category.isFeatured,
     isArchived: category.isArchived,
     sortOrder: category.sortOrder,
@@ -143,6 +145,7 @@ export async function getCategoryForEdit(id: string): Promise<AdminCategory | nu
     imageUrl: category.imageUrl ?? undefined,
     imageCloudinaryId: category.imageCloudinaryId ?? undefined,
     isOccasion: category.isOccasion,
+    isRecipient: category.isRecipient,
     isFeatured: category.isFeatured,
     isArchived: category.isArchived,
     sortOrder: category.sortOrder,
