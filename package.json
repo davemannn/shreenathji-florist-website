@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "tsx scripts/run-migrations.ts",
     "build": "next build --webpack",
     "start": "prisma migrate deploy && next start",
     "postinstall": "prisma generate",
